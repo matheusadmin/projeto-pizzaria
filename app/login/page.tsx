@@ -6,8 +6,13 @@ import { supabase } from '@/lib/supabase/client'
 import { DISPLAY, INPUT } from '@/lib/ui'
 import type { Role } from '@/lib/types'
 
-// Tela inicial de cada perfil. O entregador ganha a dele na próxima etapa.
-const HOME: Partial<Record<Role, string>> = { admin: '/pdv', caixa: '/pdv', cozinha: '/kds' }
+// Tela inicial de cada perfil. Admin vai direto para o Painel Central de Gestão.
+const HOME: Record<Role, string> = { 
+  admin: '/admin', 
+  caixa: '/pdv', 
+  cozinha: '/kds',
+  entregador: '/entregador'
+}
 
 export default function LoginPage() {
   const router = useRouter()
