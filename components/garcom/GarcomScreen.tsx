@@ -1,27 +1,61 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { usePerfil } from '@/components/RequireRole'
 import SignOutButton from '@/components/SignOutButton'
 import { useCatalogo } from '@/hooks/useCatalogo'
 import { useCart } from '@/hooks/useCart'
 import { finalizarPedido, msgErro } from '@/lib/pedidos'
 import { brl, type PedidoMeta, type Produto } from '@/lib/types'
-import { DISPLAY, INPUT } from '@/lib/ui'
+import { DISPLAY } from '@/lib/ui'
 import ProductModal from '@/components/pdv/ProductModal'
+import { supabase } from '@/lib/supabase/client'
+
+interface ItemComanda {
+  id: string
+  nome_produto: string
+  nome_tamanho: string
+  quantidade: number
+  preco_unitario: number
+  observacoes: string | null
+}
+
+interface MesaAberta {
+  id: string
+  numero: number
+  mesa: string | null
+  status: string
+  subtotal: number
+  total: number
+  created_at: string
+  pedido_itens: ItemComanda[]
+}
 
 export default function GarcomScreen() {
   const perfil = usePerfil()
   const { categorias, produtos, loading, erro: erroCatalogo, recarregar } = useCatalogo()
   const cart = useCart()
 
-  const [mesa, setMesa] = useState('1')
-  const [garcomNome, setGarcomNome] = useState(perfil.nome || 'Garçom')
+  // Passo / Camada Atual do Atendimento Mobile (1: Identificação | 2: Cardápio | 3: Comanda / Carrinho)
+  const [passo, setPasso] = useState<1 | 2 | 3>(1)
+
+  // Etapa 1: Dados do Atendimento em Camada Primária
+  const [garcomNome, setGarcomNome] = useState(perfil.nome || '')
+  const [comandaNum, setComandaNum] = useState('')
+  const [mesaNum, setMesaNum] = useState('')
+
+  // Controle do Cardápio
   const [categoriaId, setCategoriaId] = useState<string | null>(null)
   const [produtoAberto, setProdutoAberto] = useState<Produto | null>(null)
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
+
+  // Consulta de Mesas em Modal
+  const [modalConsulta, setModalConsulta] = useState(false)
+  const [mesasAbertas, setMesasAbertas] = useState<MesaAberta[]>([])
+  const [loadingMesas, setLoadingMesas] = useState(false)
+  const [itensMesaAtual, setItensMesaAtual] = useState<ItemComanda[]>([])
 
   const categoriaAtiva = categoriaId ?? categorias[0]?.id ?? null
   const produtosDaCategoria = useMemo(
@@ -35,28 +69,96 @@ export default function GarcomScreen() {
     return () => clearTimeout(t)
   }, [aviso])
 
+  // Busca itens já consumidos da mesa/comanda atual
+  const carregarItensMesaAtual = useCallback(async () => {
+    if (!mesaNum.trim() && !comandaNum.trim()) return
+    let q = supabase.from('pedidos').select('id, pedido_itens(*)').eq('tipo', 'mesa').eq('pago', false).neq('status', 'cancelado')
+    
+    if (mesaNum.trim()) q = q.eq('mesa', mesaNum.trim())
+
+    const { data, error } = await q
+
+    if (!error && data) {
+      const todosItens: ItemComanda[] = []
+      data.forEach((p: any) => {
+        if (p.pedido_itens) todosItens.push(...p.pedido_itens)
+      })
+      setItensMesaAtual(todosItens)
+    } else {
+      setItensMesaAtual([])
+    }
+  }, [mesaNum, comandaNum])
+
+  useEffect(() => {
+    carregarItensMesaAtual()
+  }, [carregarItensMesaAtual])
+
+  // Validação da Camada 1 para avançar
+  function avancarParaCardapio(e: React.FormEvent) {
+    e.preventDefault()
+    if (!garcomNome.trim()) {
+      setErro('Por favor, informe o nome do garçom.')
+      return
+    }
+    if (!mesaNum.trim() && !comandaNum.trim()) {
+      setErro('Informe pelo menos o número da mesa ou da comanda.')
+      return
+    }
+    setErro(null)
+    setPasso(2)
+  }
+
+  // Consulta de Mesas e Comandas ativas
+  async function carregarTodasMesas() {
+    setLoadingMesas(true)
+    const { data, error } = await supabase
+      .from('pedidos')
+      .select('id, numero, mesa, status, subtotal, total, created_at, pedido_itens(*)')
+      .eq('tipo', 'mesa')
+      .eq('pago', false)
+      .neq('status', 'cancelado')
+      .order('created_at', { ascending: false })
+
+    if (!error && data) {
+      setMesasAbertas(data as MesaAberta[])
+    }
+    setLoadingMesas(false)
+    setModalConsulta(true)
+  }
+
+  // Envio final para a Cozinha
   async function enviarParaCozinha() {
-    if (!mesa.trim()) {
-      setErro('Informe o número da mesa.')
+    if (!mesaNum.trim() && !comandaNum.trim()) {
+      setErro('Informe o número da mesa ou comanda.')
+      setPasso(1)
       return
     }
     setErro(null)
     setEnviando(true)
     try {
+      const idAtendimento = mesaNum.trim() ? `Mesa ${mesaNum.trim()}` : `Comanda #${comandaNum.trim()}`
+      const obsAtendimento = [
+        `Garçom: ${garcomNome.trim()}`,
+        comandaNum.trim() ? `Comanda FÍSICA: ${comandaNum.trim()}` : null
+      ].filter(Boolean).join(' | ')
+
       const meta: PedidoMeta = {
         tipo: 'mesa',
-        mesa: mesa.trim(),
-        clienteNome: `Mesa ${mesa.trim()} (${garcomNome})`,
+        mesa: mesaNum.trim() || comandaNum.trim(),
+        clienteNome: `${idAtendimento} (${garcomNome.trim()})`,
         clienteTelefone: '',
         endereco: '',
         taxaEntrega: 0,
         formaPagamento: '',
         pago: false,
-        observacoes: `Lançado por Garçom: ${garcomNome}`,
+        observacoes: obsAtendimento,
       }
+
       const pedido = await finalizarPedido(cart.itens, meta)
       cart.limpar()
-      setAviso(`Comanda da Mesa ${mesa} enviada para a cozinha! (Pedido #${pedido.numero})`)
+      carregarItensMesaAtual()
+      setAviso(` Pedido #${pedido.numero} enviado com sucesso para a cozinha!`)
+      setPasso(1) // Retorna pronto para o próximo atendimento
     } catch (e) {
       setErro(msgErro(e))
     } finally {
@@ -65,51 +167,167 @@ export default function GarcomScreen() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-[#14181F] text-slate-100">
-      <header className="flex flex-wrap items-center justify-between bg-[#1A212B] px-5 py-3 border-b border-white/10">
-        <div className="flex items-center gap-4">
-          <h1 className={`${DISPLAY} text-2xl font-bold text-orange-500`}>🪑 Comanda do Garçom</h1>
-          <span className="text-sm text-slate-300">Atendente: <strong>{garcomNome}</strong></span>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-[#14181F] px-3 py-1.5 rounded-md border border-white/20">
-            <label htmlFor="mesa-num" className="text-sm font-semibold">Mesa:</label>
-            <input 
-              id="mesa-num"
-              type="text" 
-              className="w-16 bg-transparent text-center font-bold text-orange-400 focus:outline-none text-lg" 
-              value={mesa} 
-              onChange={(e) => setMesa(e.target.value)} 
-            />
+    <div className="flex h-[100dvh] w-full flex-col bg-[#10151C] text-slate-100 antialiased overflow-hidden select-none">
+      
+      {/* TopBar Compacta Mobile */}
+      <header className="flex h-14 shrink-0 items-center justify-between border-b border-white/10 bg-[#14181F] px-4">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">🪑</span>
+          <div>
+            <h1 className={`${DISPLAY} text-lg font-bold leading-tight text-orange-500`}>Garçom App</h1>
+            {garcomNome && <p className="text-[10px] text-slate-400">Atendente: <strong className="text-white">{garcomNome}</strong></p>}
           </div>
-          <SignOutButton className="rounded-md border border-white/30 px-3 py-1.5 text-sm font-medium hover:bg-white/10" />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={carregarTodasMesas}
+            className="rounded-lg bg-orange-600/20 border border-orange-500/40 px-2.5 py-1.5 text-xs font-semibold text-orange-300 active:bg-orange-600/40"
+          >
+            🔍 Ver Mesas
+          </button>
+          <SignOutButton className="rounded-lg border border-white/20 px-2 py-1.5 text-xs font-medium hover:bg-white/10" />
         </div>
       </header>
 
+      {/* Alerta / Notificação Flutuante */}
       {aviso && (
-        <div role="status" className="bg-[#2F7D4F] px-4 py-2 text-center font-semibold text-white">
+        <div role="status" className="bg-emerald-600 px-4 py-2 text-center text-xs font-bold text-white shadow-md animate-bounce">
           {aviso}
         </div>
       )}
 
-      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        {/* Catálogo de Produtos */}
-        <section className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
-          {loading ? (
-            <p className="py-12 text-center text-slate-400">Carregando cardápio…</p>
-          ) : erroCatalogo ? (
-            <div className="space-y-3 py-12 text-center">
-              <p className="font-medium text-red-400">Erro ao carregar cardápio: {erroCatalogo}</p>
-              <button type="button" onClick={recarregar} className="rounded-md bg-orange-600 px-4 py-2 font-semibold text-white">
-                Tentar novamente
-              </button>
+      {/* Indicador de Camadas / Barra de Etapas Mobile */}
+      <div className="grid grid-cols-3 border-b border-white/10 bg-[#1A212B] text-center text-xs font-semibold">
+        <button
+          type="button"
+          onClick={() => setPasso(1)}
+          className={`py-2.5 transition-colors border-b-2 ${passo === 1 ? 'border-orange-500 text-orange-400 bg-orange-500/10' : 'border-transparent text-slate-400'}`}
+        >
+          1. Identificação
+        </button>
+        <button
+          type="button"
+          onClick={() => (garcomNome && (mesaNum || comandaNum)) ? setPasso(2) : setErro('Preencha a identificação antes de prosseguir')}
+          className={`py-2.5 transition-colors border-b-2 ${passo === 2 ? 'border-orange-500 text-orange-400 bg-orange-500/10' : 'border-transparent text-slate-400'}`}
+        >
+          2. Cardápio
+        </button>
+        <button
+          type="button"
+          onClick={() => setPasso(3)}
+          className={`relative py-2.5 transition-colors border-b-2 ${passo === 3 ? 'border-orange-500 text-orange-400 bg-orange-500/10' : 'border-transparent text-slate-400'}`}
+        >
+          3. Comanda
+          {cart.itens.length > 0 && (
+            <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-[10px] font-bold text-white">
+              {cart.quantidadeTotal}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* CAMADA 1: Formulário Inicial de Identificação */}
+      {passo === 1 && (
+        <main className="flex-1 overflow-y-auto p-5 flex flex-col justify-between">
+          <form onSubmit={avancarParaCardapio} className="space-y-5 max-w-md mx-auto w-full my-auto">
+            <div className="text-center space-y-1">
+              <h2 className={`${DISPLAY} text-2xl font-bold text-white`}>Novo Atendimento</h2>
+              <p className="text-xs text-slate-400">Informe os dados básicos da mesa para iniciar os pedidos.</p>
             </div>
+
+            {erro && (
+              <div className="rounded-lg bg-red-950/80 border border-red-500/50 p-3 text-center text-xs font-semibold text-red-300">
+                {erro}
+              </div>
+            )}
+
+            <div className="space-y-4 bg-[#1A212B] p-5 rounded-2xl border border-white/10 shadow-xl">
+              {/* Nome do Garçom */}
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                  👤 Nome do Garçom / Atendente
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: Carlos, João..."
+                  value={garcomNome}
+                  onChange={(e) => setGarcomNome(e.target.value)}
+                  className="w-full h-12 rounded-xl border border-white/20 bg-[#10151C] px-4 text-base font-semibold text-white focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                />
+              </div>
+
+              {/* Número da Comanda & Mesa em Grid 2 Colunas */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                    🪑 Nº Mesa
+                  </label>
+                  <input
+                    type="number"
+                    pattern="[0-9]*"
+                    inputMode="numeric"
+                    placeholder="Ex: 05"
+                    value={mesaNum}
+                    onChange={(e) => setMesaNum(e.target.value)}
+                    className="w-full h-14 rounded-xl border border-white/20 bg-[#10151C] text-center text-2xl font-bold text-orange-400 focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                    🏷️ Nº Comanda
+                  </label>
+                  <input
+                    type="number"
+                    pattern="[0-9]*"
+                    inputMode="numeric"
+                    placeholder="Ex: 102"
+                    value={comandaNum}
+                    onChange={(e) => setComandaNum(e.target.value)}
+                    className="w-full h-14 rounded-xl border border-white/20 bg-[#10151C] text-center text-2xl font-bold text-orange-400 focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full h-14 rounded-xl bg-orange-600 font-bold text-lg text-white shadow-lg active:bg-orange-500 transition-transform active:scale-[0.98] flex items-center justify-center gap-2"
+            >
+              Ir para o Cardápio ➔
+            </button>
+          </form>
+        </main>
+      )}
+
+      {/* CAMADA 2: Cardápio Touch Adaptado para Celular */}
+      {passo === 2 && (
+        <main className="flex-1 flex flex-col min-h-0 bg-[#10151C]">
+          {/* Status rápido do topo */}
+          <div className="flex justify-between items-center bg-[#14181F] px-4 py-2 border-b border-white/10 text-xs">
+            <span className="text-slate-300">
+              Atendendo: <strong className="text-orange-400">{mesaNum ? `Mesa ${mesaNum}` : ''} {comandaNum ? `Comanda #${comandaNum}` : ''}</strong>
+            </span>
+            <button
+              type="button"
+              onClick={() => setPasso(1)}
+              className="text-slate-400 underline font-medium"
+            >
+              Alterar
+            </button>
+          </div>
+
+          {loading ? (
+            <p className="py-20 text-center text-slate-400 text-sm">Carregando cardápio…</p>
           ) : categorias.length === 0 ? (
-            <p className="py-12 text-center text-slate-400">Nenhuma categoria encontrada.</p>
+            <p className="py-20 text-center text-slate-400 text-sm">Nenhuma categoria encontrada.</p>
           ) : (
             <>
-              {/* Abas de categorias */}
-              <nav aria-label="Categorias" className="flex gap-2 overflow-x-auto pb-2">
+              {/* Abas de Categorias Deslizáveis (Carrossel Touch) */}
+              <div className="flex gap-2 overflow-x-auto p-3 bg-[#1A212B] border-b border-white/10 shrink-0 scrollbar-none">
                 {categorias.map((c) => {
                   const ativa = c.id === categoriaAtiva
                   return (
@@ -118,18 +336,18 @@ export default function GarcomScreen() {
                       type="button"
                       onClick={() => setCategoriaId(c.id)}
                       className={
-                        'shrink-0 rounded-md border px-4 py-2.5 text-sm font-semibold transition-colors ' +
-                        (ativa ? 'border-orange-500 bg-orange-600 text-white' : 'border-white/20 bg-[#1A212B] text-slate-300 hover:border-orange-500')
+                        'shrink-0 rounded-xl px-4 py-2.5 text-xs font-bold transition-colors shadow-sm ' +
+                        (ativa ? 'bg-orange-600 text-white' : 'bg-[#10151C] text-slate-300 border border-white/10')
                       }
                     >
                       {c.nome}
                     </button>
                   )
                 })}
-              </nav>
+              </div>
 
-              {/* Grid de produtos */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {/* Grid de Produtos com Botões Grandes Tocáveis */}
+              <div className="flex-1 overflow-y-auto p-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {produtosDaCategoria.map((p) => {
                   const semPreco = p.produto_tamanhos.length === 0
                   return (
@@ -138,71 +356,98 @@ export default function GarcomScreen() {
                       type="button"
                       disabled={semPreco}
                       onClick={() => setProdutoAberto(p)}
-                      className="flex h-full w-full flex-col justify-between gap-2 rounded-md border border-white/15 bg-[#1A212B] p-4 text-left transition-colors hover:border-orange-500 disabled:opacity-50"
+                      className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-[#1A212B] p-3.5 text-left active:border-orange-500 active:bg-orange-500/10 transition-colors shadow-md disabled:opacity-50"
                     >
-                      <div>
-                        <span className="block text-base font-semibold text-white">{p.nome}</span>
-                        {p.descricao && <span className="mt-1 line-clamp-2 block text-xs text-slate-400">{p.descricao}</span>}
-                      </div>
-                      <div className="flex items-baseline justify-between pt-2">
-                        <span className="text-xs text-slate-400">
-                          {semPreco ? 'Indisponível' : p.produto_tamanhos.length > 1 ? 'A partir de' : 'Preço'}
+                      <div className="min-w-0 flex-1">
+                        <span className="block text-sm font-bold text-white truncate">{p.nome}</span>
+                        {p.descricao && <span className="line-clamp-1 block text-[11px] text-slate-400 mt-0.5">{p.descricao}</span>}
+                        <span className="block text-xs font-bold text-orange-400 mt-1">
+                          {!semPreco ? brl(p.produto_tamanhos[0].preco_venda) : 'Indisponível'}
                         </span>
-                        {!semPreco && (
-                          <span className={`${DISPLAY} text-xl font-semibold text-orange-400`}>
-                            {brl(p.produto_tamanhos[0].preco_venda)}
-                          </span>
-                        )}
                       </div>
+                      <span className="h-9 w-9 rounded-lg bg-orange-600/20 border border-orange-500/40 flex items-center justify-center text-orange-400 text-lg font-bold shrink-0">
+                        +
+                      </span>
                     </button>
                   )
                 })}
               </div>
+
+              {/* Rodapé Fixo de Navegação para a Comanda/Carrinho */}
+              {cart.itens.length > 0 && (
+                <div className="p-3 bg-[#14181F] border-t border-white/10 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setPasso(3)}
+                    className="w-full h-12 rounded-xl bg-green-600 font-bold text-sm text-white shadow-lg flex items-center justify-between px-4 active:bg-green-500 transition-colors"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="bg-white/20 px-2 py-0.5 rounded text-xs">{cart.quantidadeTotal} itens</span>
+                      Ver Comanda
+                    </span>
+                    <span className={`${DISPLAY} text-lg`}>{brl(cart.subtotal)} ➔</span>
+                  </button>
+                </div>
+              )}
             </>
           )}
-        </section>
+        </main>
+      )}
 
-        {/* Carrinho / Comanda da Mesa */}
-        <aside className="flex h-full min-h-0 w-full flex-col border-t lg:border-t-0 lg:border-l border-white/10 bg-[#1A212B] lg:w-[24rem]">
-          <div className="flex items-center justify-between border-b border-white/10 p-4">
-            <h2 className={`${DISPLAY} text-2xl font-bold text-white`}>Comanda Mesa {mesa || '?'}</h2>
-            {cart.itens.length > 0 && (
-              <button type="button" onClick={cart.limpar} className="text-xs font-medium text-slate-400 underline hover:text-white">
-                Limpar
-              </button>
-            )}
+      {/* CAMADA 3: Revisão da Comanda e Confirmar Envio */}
+      {passo === 3 && (
+        <main className="flex-1 flex flex-col min-h-0 bg-[#10151C] p-4 space-y-4 overflow-y-auto">
+          <div className="flex justify-between items-center border-b border-white/10 pb-3">
+            <div>
+              <h2 className={`${DISPLAY} text-xl font-bold text-white`}>Resumo da Comanda</h2>
+              <p className="text-xs text-slate-400">Atendimento: Mesa {mesaNum || '-'} | Comanda {comandaNum || '-'}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPasso(2)}
+              className="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-semibold text-slate-300"
+            >
+              + Adicionar mais
+            </button>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto p-4 space-y-3">
+          {/* Consumo Anterior Registrado */}
+          {itensMesaAtual.length > 0 && (
+            <div className="rounded-xl bg-black/40 p-3 border border-white/10 space-y-2">
+              <p className="text-xs font-bold text-orange-400 uppercase tracking-wider">📦 Já Enviado para Cozinha:</p>
+              <ul className="divide-y divide-white/5 space-y-1 text-xs">
+                {itensMesaAtual.map((it, idx) => (
+                  <li key={idx} className="flex justify-between pt-1 text-slate-300">
+                    <span>{it.quantidade}x {it.nome_produto} ({it.nome_tamanho})</span>
+                    <span className="font-semibold">{brl(it.preco_unitario * it.quantidade)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Novos Itens a Enviar */}
+          <div className="flex-1 space-y-2">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">➕ Novos Itens a Lançar:</p>
             {cart.itens.length === 0 ? (
-              <p className="py-12 text-center text-slate-400 text-sm">Nenhum item adicionado à comanda desta mesa.</p>
+              <p className="py-8 text-center text-xs text-slate-500 italic">Nenhum novo item adicionado nesta comanda.</p>
             ) : (
-              <ul className="divide-y divide-white/10 space-y-3">
+              <ul className="space-y-2">
                 {cart.itens.map((i) => (
-                  <li key={i.key} className="pt-3 first:pt-0">
-                    <div className="flex justify-between items-start gap-2">
-                      <div>
-                        <p className="font-semibold text-sm text-white">{i.nome_produto}</p>
-                        <p className="text-xs text-slate-400">{i.nome_tamanho}</p>
-                        {i.observacoes && (
-                          <p className="mt-1 bg-yellow-500/20 text-yellow-300 px-1.5 py-0.5 rounded text-xs">
-                            Obs: {i.observacoes}
-                          </p>
-                        )}
-                      </div>
-                      <span className={`${DISPLAY} text-lg font-bold text-orange-400`}>{brl(i.preco_unitario * i.quantidade)}</span>
+                  <li key={i.key} className="rounded-xl bg-[#1A212B] p-3 border border-white/10 flex justify-between items-center">
+                    <div>
+                      <p className="font-bold text-sm text-white">{i.nome_produto}</p>
+                      <p className="text-xs text-slate-400">{i.nome_tamanho}</p>
+                      {i.observacoes && <p className="text-[11px] text-yellow-300 mt-0.5">Obs: {i.observacoes}</p>}
+                      <span className="text-xs font-bold text-orange-400 mt-1 block">{brl(i.preco_unitario * i.quantidade)}</span>
                     </div>
-                    <div className="mt-2 flex items-center justify-between">
-                      <div className="flex items-center gap-1">
-                        <button type="button" onClick={() => cart.alterarQuantidade(i.key, -1)}
-                          className="h-7 w-7 rounded bg-white/10 text-sm font-bold hover:bg-white/20">−</button>
-                        <span className="w-6 text-center text-sm font-semibold">{i.quantidade}</span>
-                        <button type="button" onClick={() => cart.alterarQuantidade(i.key, 1)}
-                          className="h-7 w-7 rounded bg-white/10 text-sm font-bold hover:bg-white/20">+</button>
-                      </div>
-                      <button type="button" onClick={() => cart.remover(i.key)} className="text-xs text-red-400 underline">
-                        Remover
-                      </button>
+
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={() => cart.alterarQuantidade(i.key, -1)}
+                        className="h-8 w-8 rounded-lg bg-white/10 text-base font-bold active:bg-white/20">−</button>
+                      <span className="w-5 text-center text-sm font-bold">{i.quantidade}</span>
+                      <button type="button" onClick={() => cart.alterarQuantidade(i.key, 1)}
+                        className="h-8 w-8 rounded-lg bg-white/10 text-base font-bold active:bg-white/20">+</button>
                     </div>
                   </li>
                 ))}
@@ -210,29 +455,79 @@ export default function GarcomScreen() {
             )}
           </div>
 
-          <div className="border-t border-white/10 bg-[#10151C] p-4 space-y-3">
-            {erro && <p role="alert" className="text-xs font-medium text-red-400">{erro}</p>}
+          {/* Footer de Disparo Fixo */}
+          <div className="bg-[#14181F] p-4 rounded-2xl border border-white/10 space-y-3">
+            {erro && <p role="alert" className="text-xs font-semibold text-red-400">{erro}</p>}
+            
             <div className="flex justify-between items-baseline">
-              <span className="text-sm text-slate-300">Total da Comanda</span>
-              <span className={`${DISPLAY} text-3xl font-bold text-orange-500`}>{brl(cart.subtotal)}</span>
+              <span className="text-xs text-slate-400 uppercase font-bold">Total do Envio</span>
+              <span className={`${DISPLAY} text-2xl font-bold text-orange-500`}>{brl(cart.subtotal)}</span>
             </div>
+
             <button
               type="button"
               onClick={enviarParaCozinha}
               disabled={enviando || cart.itens.length === 0}
-              className="w-full rounded-md bg-orange-600 py-3.5 text-base font-semibold text-white shadow hover:bg-orange-500 disabled:opacity-50 transition-colors"
+              className="w-full h-14 rounded-xl bg-orange-600 font-bold text-base text-white shadow-xl active:bg-orange-500 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
             >
-              {enviando ? 'Enviando para Cozinha…' : '🚀 Enviar para Cozinha (KDS)'}
+              {enviando ? 'Enviando para Cozinha…' : '🚀 Disparar Pedido para Cozinha'}
             </button>
           </div>
-        </aside>
-      </div>
+        </main>
+      )}
 
+      {/* Modal de Consulta de Mesas em Atendimento */}
+      {modalConsulta && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
+          <div className="flex h-[85dvh] w-full max-w-md flex-col rounded-2xl bg-[#1A212B] text-slate-100 shadow-2xl border border-white/10 overflow-hidden">
+            <div className="flex items-center justify-between border-b border-white/10 px-5 py-3.5 bg-[#14181F]">
+              <h3 className={`${DISPLAY} text-lg font-bold text-orange-500`}>🔍 Mesas & Comandas Abertas</h3>
+              <button type="button" onClick={() => setModalConsulta(false)} className="rounded-lg bg-white/10 px-2.5 py-1 text-xs font-semibold">
+                ✕ Fechar
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {loadingMesas ? (
+                <p className="py-12 text-center text-xs text-slate-400">Buscando mesas ativas…</p>
+              ) : mesasAbertas.length === 0 ? (
+                <p className="py-12 text-center text-xs text-slate-500">Nenhuma mesa aberta no momento.</p>
+              ) : (
+                mesasAbertas.map((m) => (
+                  <div key={m.id} className="rounded-xl border border-white/10 bg-[#14181F] p-3.5 space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className={`${DISPLAY} text-lg font-bold text-white`}>Mesa {m.mesa || '?'}</span>
+                      <span className="text-xs font-bold text-orange-400">{brl(m.total || m.subtotal)}</span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (m.mesa) setMesaNum(m.mesa)
+                        setModalConsulta(false)
+                        setPasso(2)
+                      }}
+                      className="w-full h-10 rounded-lg bg-orange-600 text-xs font-bold text-white active:bg-orange-500 transition-colors"
+                    >
+                      Atender Mesa {m.mesa} ➔
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Detalhes do Produto */}
       {produtoAberto && (
         <ProductModal
           produto={produtoAberto}
           onClose={() => setProdutoAberto(null)}
-          onConfirm={cart.adicionar}
+          onConfirm={(item) => {
+            cart.adicionar(item)
+            setProdutoAberto(null)
+          }}
         />
       )}
     </div>
