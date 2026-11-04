@@ -11,6 +11,7 @@ interface PedidoEntrega {
   id: string
   numero: number
   status: string
+  pago: boolean
   cliente_nome: string | null
   cliente_telefone: string | null
   endereco_entrega: string | null
@@ -43,10 +44,11 @@ export default function EntregadorScreen() {
     osc.stop(ctx.currentTime + 0.6)
   }, [])
 
+  // Carrega apenas pedidos prontos para sair ou em rota
   const carregar = useCallback(async () => {
     const { data, error } = await supabase
       .from('pedidos')
-      .select('id, numero, status, cliente_nome, cliente_telefone, endereco_entrega, taxa_entrega, observacoes, created_at')
+      .select('id, numero, status, pago, cliente_nome, cliente_telefone, endereco_entrega, taxa_entrega, observacoes, created_at')
       .eq('tipo', 'delivery')
       .in('status', ['pronto', 'saiu_para_entrega'])
       .order('created_at', { ascending: true })
@@ -84,6 +86,8 @@ export default function EntregadorScreen() {
     if (somRef.current) apitar()
   }
 
+  // REGRA DE SEGURANÇA OPERACIONAL:
+  // Marcar como 'entregue' NÃO marca pago = true. Apenas sinaliza ao caixa que o entregador retornou!
   async function alterarStatus(id: string, novoStatus: 'saiu_para_entrega' | 'entregue') {
     await supabase.from('pedidos').update({ status: novoStatus }).eq('id', id)
     carregar()
@@ -93,8 +97,8 @@ export default function EntregadorScreen() {
     <div className="min-h-screen bg-[#10151C] text-slate-100">
       <header className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-[#14181F] px-5 py-3">
         <div className="flex items-baseline gap-4">
-          <h1 className={`${DISPLAY} text-3xl font-bold text-orange-500`}>🛵 Painel do Entregador</h1>
-          <p className="text-sm text-slate-300">Expedição e rotas de delivery</p>
+          <h1 className={`${DISPLAY} text-3xl font-bold text-orange-500`}>🛵 Expedição & Entregadores</h1>
+          <p className="text-sm text-slate-300">Rotas de entrega em andamento</p>
         </div>
 
         <div className="flex items-center gap-3 text-sm">
@@ -118,7 +122,7 @@ export default function EntregadorScreen() {
           <p className="py-20 text-center text-slate-400">Carregando entregas…</p>
         ) : pedidos.length === 0 ? (
           <p className={`${DISPLAY} py-24 text-center text-4xl font-semibold text-slate-500`}>
-            Nenhum pedido pronto ou em rota no momento
+            Nenhum pedido aguardando expedição ou em rota no momento
           </p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -131,14 +135,14 @@ export default function EntregadorScreen() {
                       <div>
                         <span className={`${DISPLAY} text-4xl font-bold text-white`}>#{p.numero}</span>
                         <span className={`ml-3 text-xs px-2.5 py-1 rounded-full font-semibold uppercase ${pronto ? 'bg-yellow-500 text-black' : 'bg-blue-600 text-white'}`}>
-                          {pronto ? '🔔 Pronto para Entrega' : '🚀 Em Rota'}
+                          {pronto ? '🔔 Pronto na Cozinha' : '🚀 Em Rota de Entrega'}
                         </span>
                       </div>
                       <span className="text-sm font-semibold text-orange-400">{brl(p.taxa_entrega)} taxa</span>
                     </div>
 
                     <div className="space-y-1 mb-4 text-sm">
-                      <p className="text-white font-semibold text-base">👤 {p.cliente_nome || 'Cliente não identificado'}</p>
+                      <p className="text-white font-semibold text-base">👤 {p.cliente_nome || 'Cliente não informado'}</p>
                       <p className="text-slate-300">📞 {p.cliente_telefone || 'Sem telefone'}</p>
                       <p className="text-slate-200 bg-black/30 p-2 rounded mt-2 border border-white/10">📍 {p.endereco_entrega || 'Sem endereço informado'}</p>
                       {p.observacoes && <p className="text-yellow-300 text-xs mt-1">Obs: {p.observacoes}</p>}
@@ -160,7 +164,7 @@ export default function EntregadorScreen() {
                       onClick={() => alterarStatus(p.id, 'entregue')}
                       className="flex-1 rounded-md bg-green-600 py-3 text-base font-semibold text-white hover:bg-green-500 transition-colors"
                     >
-                      ✅ Concluir Entrega
+                      ✅ Concluir Retorno ao Caixa
                     </button>
                   </div>
                 </article>

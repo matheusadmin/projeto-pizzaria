@@ -12,6 +12,7 @@ import CategoryTabs from './CategoryTabs'
 import ProductGrid from './ProductGrid'
 import ProductModal from './ProductModal'
 import OrderSummary from './OrderSummary'
+import PedidosAbertosModal from './PedidosAbertosModal'
 
 export default function PdvScreen() {
   const perfil = usePerfil()
@@ -21,6 +22,7 @@ export default function PdvScreen() {
   const [meta, setMeta] = useState<PedidoMeta>(META_INICIAL)
   const [categoriaId, setCategoriaId] = useState<string | null>(null)
   const [produtoAberto, setProdutoAberto] = useState<Produto | null>(null)
+  const [modalAbertos, setModalAbertos] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
@@ -58,7 +60,16 @@ export default function PdvScreen() {
   return (
     <div className="flex h-screen flex-col bg-[#E9ECEF] text-[#14181F]">
       <header className="flex items-center justify-between bg-[#14181F] px-4 py-3 text-white">
-        <h1 className={`${DISPLAY} text-2xl font-bold`}>Caixa</h1>
+        <div className="flex items-center gap-4">
+          <h1 className={`${DISPLAY} text-2xl font-bold text-orange-500`}>Caixa / PDV</h1>
+          <button
+            type="button"
+            onClick={() => setModalAbertos(true)}
+            className="rounded-md bg-orange-600 hover:bg-orange-500 px-3.5 py-1.5 text-sm font-semibold text-white transition-colors shadow flex items-center gap-2"
+          >
+            📋 Pedidos em Aberto (Mesas / Balcão / Delivery)
+          </button>
+        </div>
         <div className="flex items-center gap-4 text-sm">
           <span>{perfil.nome}</span>
           <SignOutButton className="rounded-md border border-white/30 px-3 py-1.5 font-medium hover:bg-white/10" />
@@ -75,35 +86,45 @@ export default function PdvScreen() {
             <p className="py-12 text-center text-slate-600">Carregando cardápio…</p>
           ) : erroCatalogo ? (
             <div className="space-y-3 py-12 text-center">
-              <p className="font-medium text-[#B42318]">Não foi possível carregar o cardápio: {erroCatalogo}</p>
-              <button type="button" onClick={recarregar} className="rounded-md bg-[#14181F] px-4 py-2 font-semibold text-white">
-                Tentar de novo
+              <p className="font-medium text-[#B42318]">Não foi possível carregar os produtos.</p>
+              <p className="text-sm text-slate-600">{erroCatalogo}</p>
+              <button
+                type="button"
+                onClick={recarregar}
+                className="rounded-md bg-[#D7372B] px-4 py-2 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D7372B]"
+              >
+                Tentar novamente
               </button>
             </div>
           ) : categorias.length === 0 ? (
-            <p className="py-12 text-center text-slate-600">
-              Nenhuma categoria cadastrada. Cadastre categorias e produtos para começar a vender.
-            </p>
+            <p className="py-12 text-center text-slate-600">Nenhuma categoria cadastrada.</p>
           ) : (
             <>
-              <CategoryTabs categorias={categorias} ativaId={categoriaAtiva} onSelect={setCategoriaId} />
-              <ProductGrid produtos={produtosDaCategoria} onSelect={setProdutoAberto} />
+              <CategoryTabs
+                categorias={categorias}
+                categoriaAtivaId={categoriaAtiva}
+                onSelect={setCategoriaId}
+              />
+              <ProductGrid
+                produtos={produtosDaCategoria}
+                onSelectProduto={setProdutoAberto}
+              />
             </>
           )}
         </section>
 
         <OrderSummary
-          itens={cart.itens}
           meta={meta}
+          onChangeMeta={setMeta}
+          itens={cart.itens}
           subtotal={cart.subtotal}
           total={total}
-          enviando={enviando}
-          erro={erro}
-          onMetaChange={(patch) => setMeta((m) => ({ ...m, ...patch }))}
-          onQuantidade={cart.alterarQuantidade}
+          onAlterarQtd={cart.alterarQuantidade}
           onRemover={cart.remover}
           onLimpar={cart.limpar}
           onFinalizar={finalizar}
+          enviando={enviando}
+          erro={erro}
         />
       </div>
 
@@ -112,6 +133,13 @@ export default function PdvScreen() {
           produto={produtoAberto}
           onClose={() => setProdutoAberto(null)}
           onConfirm={cart.adicionar}
+        />
+      )}
+
+      {modalAbertos && (
+        <PedidosAbertosModal
+          onClose={() => setModalAbertos(false)}
+          onSucesso={() => setAviso('Conta liquidada com sucesso!')}
         />
       )}
     </div>
