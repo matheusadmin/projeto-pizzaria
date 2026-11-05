@@ -1,77 +1,113 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
-import { DISPLAY, INPUT } from '@/lib/ui'
-import type { Role } from '@/lib/types'
-
-// Tela inicial de cada perfil. Admin vai direto para o Painel Central de Gestão.
-const HOME: Record<Role, string> = { 
-  admin: '/admin', 
-  caixa: '/pdv', 
-  cozinha: '/kds',
-  entregador: '/entregador'
-}
+import { DISPLAY } from '@/lib/ui'
 
 export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [erro, setErro] = useState<string | null>(null)
-  const [enviando, setEnviando] = useState(false)
+  const [carregando, setCarregando] = useState(false)
 
-  async function entrar(e: FormEvent) {
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setErro(null)
-    setEnviando(true)
+    setCarregando(true)
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password: senha })
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password: senha,
+    })
+
     if (error) {
-      setErro('E-mail ou senha incorretos.')
-      return setEnviando(false)
+      setErro(error.message === 'Invalid login credentials' ? 'E-mail ou senha incorretos.' : error.message)
+      setCarregando(false)
+    } else {
+      router.push('/pdv')
     }
-
-    const { data: perfil } = await supabase
-      .from('perfis').select('role, ativo').eq('id', data.user.id).maybeSingle()
-
-    const destino = perfil?.ativo ? HOME[perfil.role as Role] : undefined
-    if (!destino) {
-      await supabase.auth.signOut()
-      setErro(
-        perfil?.ativo
-          ? 'A tela deste perfil ainda não está disponível.'
-          : 'Este usuário não tem perfil ativo. Peça ao administrador para liberar o acesso.'
-      )
-      return setEnviando(false)
-    }
-    router.replace(destino)
   }
 
   return (
-    <main className="grid min-h-screen place-items-center bg-[#14181F] p-6">
-      <form onSubmit={entrar} className="w-full max-w-sm space-y-4 rounded-md bg-white p-6">
-        <h1 className={`${DISPLAY} text-4xl font-bold text-[#14181F]`}>Entrar</h1>
+    <div className="flex min-h-screen flex-col bg-[#14181F] text-white">
+      {/* Navbar superior ajustada para embrulhar em telas de tablet/celular */}
+      <header className="border-b border-slate-800 bg-[#14181F]/90 px-4 py-3 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xl font-black tracking-tight text-orange-500">🍕 Casa Gestão</span>
+          </div>
 
-        <label className="block space-y-1 text-sm font-medium text-slate-700">
-          E-mail
-          <input className={INPUT} type="email" autoComplete="email" required
-            value={email} onChange={(e) => setEmail(e.target.value)} />
-        </label>
+          <nav className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm font-medium text-slate-300">
+            <a href="/admin" className="hover:text-orange-400 transition-colors">Painel Admin</a>
+            <span className="text-slate-700">|</span>
+            <a href="/pedidos" className="hover:text-orange-400 transition-colors">Acompanhamento Pedidos</a>
+            <span className="text-slate-700">|</span>
+            <a href="/pdv" className="hover:text-orange-400 transition-colors">Caixa (PDV)</a>
+            <span className="text-slate-700">|</span>
+            <a href="/garcom" className="hover:text-orange-400 transition-colors">Garçom</a>
+            <span className="text-slate-700">|</span>
+            <a href="/kds" className="hover:text-orange-400 transition-colors">Cozinha (KDS)</a>
+            <span className="text-slate-700">|</span>
+            <a href="/entregador" className="hover:text-orange-400 transition-colors">Entregador</a>
+          </nav>
+        </div>
+      </header>
 
-        <label className="block space-y-1 text-sm font-medium text-slate-700">
-          Senha
-          <input className={INPUT} type="password" autoComplete="current-password" required
-            value={senha} onChange={(e) => setSenha(e.target.value)} />
-        </label>
+      {/* Container de login centralizado e responsivo */}
+      <main className="flex flex-1 items-center justify-center p-4 sm:p-6">
+        <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900/80 p-6 sm:p-8 shadow-2xl backdrop-blur">
+          <div className="mb-6 text-center">
+            <h1 className={`${DISPLAY} text-2xl sm:text-3xl font-bold text-white mb-2`}>Entrar</h1>
+            <p className="text-xs sm:text-sm text-slate-400">Acesse com a sua conta para gerenciar a pizzaria</p>
+          </div>
 
-        {erro && <p role="alert" className="text-sm font-medium text-[#B42318]">{erro}</p>}
+          {erro && (
+            <div className="mb-4 rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-center text-xs sm:text-sm text-red-400">
+              {erro}
+            </div>
+          )}
 
-        <button type="submit" disabled={enviando}
-          className="w-full rounded-md bg-[#D7372B] py-3 font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D7372B] disabled:opacity-60">
-          {enviando ? 'Entrando…' : 'Entrar'}
-        </button>
-      </form>
-    </main>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                E-mail
+              </label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="seu.email@exemplo.com"
+                className="w-full rounded-lg border border-slate-700 bg-slate-800/80 px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                Senha
+              </label>
+              <input
+                type="password"
+                required
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)}
+                placeholder="••••••••"
+                className="w-full rounded-lg border border-slate-700 bg-slate-800/80 px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={carregando}
+              className="mt-2 w-full rounded-lg bg-orange-600 px-4 py-3 text-sm font-bold text-white transition-all hover:bg-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50"
+            >
+              {carregando ? 'Entrando…' : 'Entrar no Sistema'}
+            </button>
+          </form>
+        </div>
+      </main>
+    </div>
   )
 }

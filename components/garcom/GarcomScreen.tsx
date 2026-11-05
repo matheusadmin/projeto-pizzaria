@@ -9,6 +9,8 @@ import { finalizarPedido, msgErro } from '@/lib/pedidos'
 import { brl, type PedidoMeta, type Produto } from '@/lib/types'
 import { DISPLAY } from '@/lib/ui'
 import ProductModal from '@/components/pdv/ProductModal'
+import CategoryTabs from '@/components/pdv/CategoryTabs'
+import ProductGrid from '@/components/pdv/ProductGrid'
 import { supabase } from '@/lib/supabase/client'
 
 interface ItemComanda {
@@ -36,22 +38,18 @@ export default function GarcomScreen() {
   const { categorias, produtos, loading, erro: erroCatalogo, recarregar } = useCatalogo()
   const cart = useCart()
 
-  // Passo / Camada Atual do Atendimento Mobile (1: Identificação | 2: Cardápio | 3: Comanda / Carrinho)
   const [passo, setPasso] = useState<1 | 2 | 3>(1)
 
-  // Etapa 1: Dados do Atendimento em Camada Primária
   const [garcomNome, setGarcomNome] = useState(perfil.nome || '')
   const [comandaNum, setComandaNum] = useState('')
   const [mesaNum, setMesaNum] = useState('')
 
-  // Controle do Cardápio
   const [categoriaId, setCategoriaId] = useState<string | null>(null)
   const [produtoAberto, setProdutoAberto] = useState<Produto | null>(null)
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
 
-  // Consulta de Mesas em Modal
   const [modalConsulta, setModalConsulta] = useState(false)
   const [mesasAbertas, setMesasAbertas] = useState<MesaAberta[]>([])
   const [loadingMesas, setLoadingMesas] = useState(false)
@@ -69,7 +67,6 @@ export default function GarcomScreen() {
     return () => clearTimeout(t)
   }, [aviso])
 
-  // Busca itens já consumidos da mesa/comanda atual
   const carregarItensMesaAtual = useCallback(async () => {
     if (!mesaNum.trim() && !comandaNum.trim()) return
     let q = supabase.from('pedidos').select('id, pedido_itens(*)').eq('tipo', 'mesa').eq('pago', false).neq('status', 'cancelado')
@@ -93,7 +90,6 @@ export default function GarcomScreen() {
     carregarItensMesaAtual()
   }, [carregarItensMesaAtual])
 
-  // Validação da Camada 1 para avançar
   function avancarParaCardapio(e: React.FormEvent) {
     e.preventDefault()
     if (!garcomNome.trim()) {
@@ -108,7 +104,6 @@ export default function GarcomScreen() {
     setPasso(2)
   }
 
-  // Consulta de Mesas e Comandas ativas
   async function carregarTodasMesas() {
     setLoadingMesas(true)
     const { data, error } = await supabase
@@ -126,7 +121,6 @@ export default function GarcomScreen() {
     setModalConsulta(true)
   }
 
-  // Envio final para a Cozinha
   async function enviarParaCozinha() {
     if (!mesaNum.trim() && !comandaNum.trim()) {
       setErro('Informe o número da mesa ou comanda.')
@@ -157,8 +151,8 @@ export default function GarcomScreen() {
       const pedido = await finalizarPedido(cart.itens, meta)
       cart.limpar()
       carregarItensMesaAtual()
-      setAviso(` Pedido #${pedido.numero} enviado com sucesso para a cozinha!`)
-      setPasso(1) // Retorna pronto para o próximo atendimento
+      setAviso(`Pedido #${pedido.numero} enviado com sucesso para a cozinha!`)
+      setPasso(1)
     } catch (e) {
       setErro(msgErro(e))
     } finally {
@@ -169,8 +163,8 @@ export default function GarcomScreen() {
   return (
     <div className="flex h-[100dvh] w-full flex-col bg-[#10151C] text-slate-100 antialiased overflow-hidden select-none">
       
-      {/* TopBar Compacta Mobile */}
-      <header className="flex h-14 shrink-0 items-center justify-between border-b border-white/10 bg-[#14181F] px-4">
+      {/* TopBar Compacta Mobile responsiva */}
+      <header className="flex flex-wrap h-auto sm:h-14 shrink-0 items-center justify-between border-b border-white/10 bg-[#14181F] px-4 py-2.5 gap-2">
         <div className="flex items-center gap-2">
           <span className="text-xl">🪑</span>
           <div>
@@ -191,50 +185,50 @@ export default function GarcomScreen() {
         </div>
       </header>
 
-      {/* Alerta / Notificação Flutuante */}
       {aviso && (
         <div role="status" className="bg-emerald-600 px-4 py-2 text-center text-xs font-bold text-white shadow-md animate-bounce">
           {aviso}
         </div>
       )}
 
-      {/* Indicador de Camadas / Barra de Etapas Mobile */}
-      <div className="grid grid-cols-3 border-b border-white/10 bg-[#1A212B] text-center text-xs font-semibold">
-        <button
-          type="button"
-          onClick={() => setPasso(1)}
-          className={`py-2.5 transition-colors border-b-2 ${passo === 1 ? 'border-orange-500 text-orange-400 bg-orange-500/10' : 'border-transparent text-slate-400'}`}
-        >
-          1. Identificação
-        </button>
-        <button
-          type="button"
-          onClick={() => (garcomNome && (mesaNum || comandaNum)) ? setPasso(2) : setErro('Preencha a identificação antes de prosseguir')}
-          className={`py-2.5 transition-colors border-b-2 ${passo === 2 ? 'border-orange-500 text-orange-400 bg-orange-500/10' : 'border-transparent text-slate-400'}`}
-        >
-          2. Cardápio
-        </button>
-        <button
-          type="button"
-          onClick={() => setPasso(3)}
-          className={`relative py-2.5 transition-colors border-b-2 ${passo === 3 ? 'border-orange-500 text-orange-400 bg-orange-500/10' : 'border-transparent text-slate-400'}`}
-        >
-          3. Comanda
-          {cart.itens.length > 0 && (
-            <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-[10px] font-bold text-white">
-              {cart.itens?.reduce((acc, item) => acc + (item.quantidade || 0), 0)}
-            </span>
-          )}
-        </button>
+      {/* Navegação por Abas Limpas (sem poluir com numeração excessiva) */}
+      <div className="flex border-b border-white/10 bg-[#1A212B] px-4 py-2 gap-2 items-center justify-between">
+        <div className="flex gap-1.5 w-full">
+          <button
+            type="button"
+            onClick={() => setPasso(1)}
+            className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all ${passo === 1 ? 'bg-orange-600 text-white shadow' : 'bg-[#10151C] text-slate-400 border border-white/10'}`}
+          >
+            Identificação
+          </button>
+          <button
+            type="button"
+            onClick={() => (garcomNome && (mesaNum || comandaNum)) ? setPasso(2) : setErro('Preencha a identificação antes')}
+            className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all ${passo === 2 ? 'bg-orange-600 text-white shadow' : 'bg-[#10151C] text-slate-400 border border-white/10'}`}
+          >
+            Cardápio
+          </button>
+          <button
+            type="button"
+            onClick={() => setPasso(3)}
+            className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all relative ${passo === 3 ? 'bg-orange-600 text-white shadow' : 'bg-[#10151C] text-slate-400 border border-white/10'}`}
+          >
+            Comanda
+            {cart.itens.length > 0 && (
+              <span className="absolute -top-1 -right-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-orange-500 text-[10px] font-bold text-white">
+                {cart.itens?.reduce((acc, item) => acc + (item.quantidade || 0), 0)}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
-      {/* CAMADA 1: Formulário Inicial de Identificação */}
       {passo === 1 && (
         <main className="flex-1 overflow-y-auto p-5 flex flex-col justify-between">
           <form onSubmit={avancarParaCardapio} className="space-y-5 max-w-md mx-auto w-full my-auto">
             <div className="text-center space-y-1">
               <h2 className={`${DISPLAY} text-2xl font-bold text-white`}>Novo Atendimento</h2>
-              <p className="text-xs text-slate-400">Informe os dados básicos da mesa para iniciar os pedidos.</p>
+              <p className="text-xs text-slate-400">Informe os dados básicos para iniciar os pedidos.</p>
             </div>
 
             {erro && (
@@ -244,7 +238,6 @@ export default function GarcomScreen() {
             )}
 
             <div className="space-y-4 bg-[#1A212B] p-5 rounded-2xl border border-white/10 shadow-xl">
-              {/* Nome do Garçom */}
               <div>
                 <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
                   👤 Nome do Garçom / Atendente
@@ -259,7 +252,6 @@ export default function GarcomScreen() {
                 />
               </div>
 
-              {/* Número da Comanda & Mesa em Grid 2 Colunas */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
@@ -297,16 +289,14 @@ export default function GarcomScreen() {
               type="submit"
               className="w-full h-14 rounded-xl bg-orange-600 font-bold text-lg text-white shadow-lg active:bg-orange-500 transition-transform active:scale-[0.98] flex items-center justify-center gap-2"
             >
-              Ir para o Cardápio ➔
+              Avançar para o Cardápio ➔
             </button>
           </form>
         </main>
       )}
 
-      {/* CAMADA 2: Cardápio Touch Adaptado para Celular */}
       {passo === 2 && (
         <main className="flex-1 flex flex-col min-h-0 bg-[#10151C]">
-          {/* Status rápido do topo */}
           <div className="flex justify-between items-center bg-[#14181F] px-4 py-2 border-b border-white/10 text-xs">
             <span className="text-slate-300">
               Atendendo: <strong className="text-orange-400">{mesaNum ? `Mesa ${mesaNum}` : ''} {comandaNum ? `Comanda #${comandaNum}` : ''}</strong>
@@ -326,54 +316,23 @@ export default function GarcomScreen() {
             <p className="py-20 text-center text-slate-400 text-sm">Nenhuma categoria encontrada.</p>
           ) : (
             <>
-              {/* Abas de Categorias Deslizáveis (Carrossel Touch) */}
-              <div className="flex gap-2 overflow-x-auto p-3 bg-[#1A212B] border-b border-white/10 shrink-0 scrollbar-none">
-                {categorias.map((c) => {
-                  const ativa = c.id === categoriaAtiva
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => setCategoriaId(c.id)}
-                      className={
-                        'shrink-0 rounded-xl px-4 py-2.5 text-xs font-bold transition-colors shadow-sm ' +
-                        (ativa ? 'bg-orange-600 text-white' : 'bg-[#10151C] text-slate-300 border border-white/10')
-                      }
-                    >
-                      {c.nome}
-                    </button>
-                  )
-                })}
+              {/* Filtro de Categorias Fluido (CategoryTabs) */}
+              <div className="p-3 bg-[#1A212B] border-b border-white/10 shrink-0">
+                <CategoryTabs
+                  categorias={categorias}
+                  ativaId={categoriaAtiva}
+                  onSelect={setCategoriaId}
+                />
               </div>
 
-              {/* Grid de Produtos com Botões Grandes Tocáveis */}
-              <div className="flex-1 overflow-y-auto p-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {produtosDaCategoria.map((p) => {
-                  const semPreco = p.produto_tamanhos.length === 0
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      disabled={semPreco}
-                      onClick={() => setProdutoAberto(p)}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-[#1A212B] p-3.5 text-left active:border-orange-500 active:bg-orange-500/10 transition-colors shadow-md disabled:opacity-50"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <span className="block text-sm font-bold text-white truncate">{p.nome}</span>
-                        {p.descricao && <span className="line-clamp-1 block text-[11px] text-slate-400 mt-0.5">{p.descricao}</span>}
-                        <span className="block text-xs font-bold text-orange-400 mt-1">
-                          {!semPreco ? brl(p.produto_tamanhos[0].preco_venda) : 'Indisponível'}
-                        </span>
-                      </div>
-                      <span className="h-9 w-9 rounded-lg bg-orange-600/20 border border-orange-500/40 flex items-center justify-center text-orange-400 text-lg font-bold shrink-0">
-                        +
-                      </span>
-                    </button>
-                  )
-                })}
+              {/* Grid de Produtos (ProductGrid) */}
+              <div className="flex-1 overflow-y-auto p-3">
+                <ProductGrid
+                  produtos={produtosDaCategoria}
+                  onSelect={setProdutoAberto}
+                />
               </div>
 
-              {/* Rodapé Fixo de Navegação para a Comanda/Carrinho */}
               {cart.itens.length > 0 && (
                 <div className="p-3 bg-[#14181F] border-t border-white/10 shrink-0">
                   <button
@@ -394,7 +353,6 @@ export default function GarcomScreen() {
         </main>
       )}
 
-      {/* CAMADA 3: Revisão da Comanda e Confirmar Envio */}
       {passo === 3 && (
         <main className="flex-1 flex flex-col min-h-0 bg-[#10151C] p-4 space-y-4 overflow-y-auto">
           <div className="flex justify-between items-center border-b border-white/10 pb-3">
@@ -411,7 +369,6 @@ export default function GarcomScreen() {
             </button>
           </div>
 
-          {/* Consumo Anterior Registrado */}
           {itensMesaAtual.length > 0 && (
             <div className="rounded-xl bg-black/40 p-3 border border-white/10 space-y-2">
               <p className="text-xs font-bold text-orange-400 uppercase tracking-wider">📦 Já Enviado para Cozinha:</p>
@@ -426,7 +383,6 @@ export default function GarcomScreen() {
             </div>
           )}
 
-          {/* Novos Itens a Enviar */}
           <div className="flex-1 space-y-2">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">➕ Novos Itens a Lançar:</p>
             {cart.itens.length === 0 ? (
@@ -455,7 +411,6 @@ export default function GarcomScreen() {
             )}
           </div>
 
-          {/* Footer de Disparo Fixo */}
           <div className="bg-[#14181F] p-4 rounded-2xl border border-white/10 space-y-3">
             {erro && <p role="alert" className="text-xs font-semibold text-red-400">{erro}</p>}
             
@@ -476,7 +431,6 @@ export default function GarcomScreen() {
         </main>
       )}
 
-      {/* Modal de Consulta de Mesas em Atendimento */}
       {modalConsulta && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
           <div className="flex h-[85dvh] w-full max-w-md flex-col rounded-2xl bg-[#1A212B] text-slate-100 shadow-2xl border border-white/10 overflow-hidden">
@@ -519,7 +473,6 @@ export default function GarcomScreen() {
         </div>
       )}
 
-      {/* Modal de Detalhes do Produto */}
       {produtoAberto && (
         <ProductModal
           produto={produtoAberto}
