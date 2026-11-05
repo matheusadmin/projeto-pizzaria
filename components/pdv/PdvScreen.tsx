@@ -102,29 +102,29 @@ export default function PdvScreen() {
             <>
               <CategoryTabs
                 categorias={categorias}
-                categoriaAtivaId={categoriaAtiva}
+                ativaId={categoriaAtiva}
                 onSelect={setCategoriaId}
               />
               <ProductGrid
                 produtos={produtosDaCategoria}
-                onSelectProduto={setProdutoAberto}
+                onSelect={setProdutoAberto}
               />
             </>
           )}
         </section>
 
         <OrderSummary
-          meta={meta}
-          onChangeMeta={setMeta}
           itens={cart.itens}
+          meta={meta}
           subtotal={cart.subtotal}
           total={total}
-          onAlterarQtd={cart.alterarQuantidade}
+          enviando={enviando}
+          erro={erro}
+          onMetaChange={(patch) => setMeta((m) => ({ ...m, ...patch }))}
+          onQuantidade={cart.alterarQuantidade}
           onRemover={cart.remover}
           onLimpar={cart.limpar}
           onFinalizar={finalizar}
-          enviando={enviando}
-          erro={erro}
         />
       </div>
 

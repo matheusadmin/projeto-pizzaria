@@ -222,7 +222,7 @@ export default function GarcomScreen() {
           3. Comanda
           {cart.itens.length > 0 && (
             <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-[10px] font-bold text-white">
-              {cart.quantidadeTotal}
+              {cart.itens?.reduce((acc, item) => acc + (item.quantidade || 0), 0)}
             </span>
           )}
         </button>
@@ -382,7 +382,7 @@ export default function GarcomScreen() {
                     className="w-full h-12 rounded-xl bg-green-600 font-bold text-sm text-white shadow-lg flex items-center justify-between px-4 active:bg-green-500 transition-colors"
                   >
                     <span className="flex items-center gap-2">
-                      <span className="bg-white/20 px-2 py-0.5 rounded text-xs">{cart.quantidadeTotal} itens</span>
+                      <span className="bg-white/20 px-2 py-0.5 rounded text-xs">{cart.itens.reduce((acc, item) => acc + (item.quantidade || 0), 0)} itens</span>
                       Ver Comanda
                     </span>
                     <span className={`${DISPLAY} text-lg`}>{brl(cart.subtotal)} ➔</span>
