@@ -21,10 +21,10 @@ export default function CategoryTabs({ categorias, ativaId, onSelect }: Props) {
             onClick={() => onSelect(c.id)}
             className={
               'shrink-0 rounded-md border px-5 py-3 text-base font-semibold transition-colors ' +
-              'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D7372B] ' +
+              'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca ' +
               (ativa
-                ? 'border-[#D7372B] bg-[#D7372B] text-white'
-                : 'border-slate-300 bg-white text-[#14181F] hover:border-[#D7372B]')
+                ? 'border-marca bg-marca text-fundo'
+                : 'border-white/15 bg-superficie text-slate-200 hover:border-marca/60 hover:bg-superficie-alta')
             }
           >
             {c.nome}

@@ -1,5 +1,7 @@
 import { supabase } from '@/lib/supabase/client'
 import { round2, type CartItem, type PedidoMeta } from '@/lib/types'
+import { OUTRO } from '@/lib/taxasEntrega'
+import { soDigitos } from '@/lib/whatsapp'
 
 /** Extrai mensagem legível de erros do Supabase (PostgrestError não é instância de Error). */
 export function msgErro(e: unknown): string {
@@ -12,6 +14,7 @@ function validar(itens: CartItem[], meta: PedidoMeta): string | null {
   if (itens.length === 0) return 'Adicione pelo menos um item ao pedido.'
   if (meta.tipo === 'mesa' && !meta.mesa.trim()) return 'Informe o número da mesa.'
   if (meta.tipo === 'delivery' && !meta.endereco.trim()) return 'Informe o endereço de entrega.'
+  if (meta.tipo === 'retirada' && !meta.clienteNome.trim()) return 'Informe o nome de quem vai retirar.'
   return null
 }
 
@@ -28,6 +31,8 @@ export async function finalizarPedido(itens: CartItem[], meta: PedidoMeta) {
   if (problema) throw new Error(problema)
 
   const delivery = meta.tipo === 'delivery'
+  const bairro = meta.bairro && meta.bairro !== OUTRO ? meta.bairro : ''
+  const enderecoCompleto = [meta.endereco.trim(), bairro, meta.cidade].filter(Boolean).join(', ')
 
   const { data: pedido, error: errPedido } = await supabase
     .from('pedidos')
@@ -36,8 +41,9 @@ export async function finalizarPedido(itens: CartItem[], meta: PedidoMeta) {
       status: 'pendente',
       mesa: meta.tipo === 'mesa' ? meta.mesa.trim() : null,
       cliente_nome: meta.clienteNome.trim() || null,
-      cliente_telefone: meta.clienteTelefone.trim() || null,
-      endereco_entrega: delivery ? meta.endereco.trim() : null,
+      // Só dígitos: o cadastro por telefone (CRM) reconhece o mesmo cliente em qualquer formatação.
+      cliente_telefone: soDigitos(meta.clienteTelefone) || null,
+      endereco_entrega: delivery ? enderecoCompleto : null,
       taxa_entrega: delivery ? round2(meta.taxaEntrega) : 0,
       forma_pagamento: meta.formaPagamento || null,
       pago: meta.pago,

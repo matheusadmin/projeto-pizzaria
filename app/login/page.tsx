@@ -17,97 +17,94 @@ export default function LoginPage() {
     setErro(null)
     setCarregando(true)
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password: senha,
-    })
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: senha,
+      })
 
-    if (error) {
-      setErro(error.message === 'Invalid login credentials' ? 'E-mail ou senha incorretos.' : error.message)
+      if (error) {
+        setErro('Credenciais inválidas. Verifique o e-mail e a senha.')
+      } else {
+        router.push('/')
+      }
+    } catch {
+      setErro('Erro de conexão com o servidor. Tente novamente.')
+    } finally {
       setCarregando(false)
-    } else {
-      router.push('/pdv')
     }
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#14181F] text-white">
-      {/* Navbar superior ajustada para embrulhar em telas de tablet/celular */}
-      <header className="border-b border-slate-800 bg-[#14181F]/90 px-4 py-3 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-xl font-black tracking-tight text-orange-500">🍕 Casa Gestão</span>
-          </div>
-
-          <nav className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm font-medium text-slate-300">
-            <a href="/admin" className="hover:text-orange-400 transition-colors">Painel Admin</a>
-            <span className="text-slate-700">|</span>
-            <a href="/pedidos" className="hover:text-orange-400 transition-colors">Acompanhamento Pedidos</a>
-            <span className="text-slate-700">|</span>
-            <a href="/pdv" className="hover:text-orange-400 transition-colors">Caixa (PDV)</a>
-            <span className="text-slate-700">|</span>
-            <a href="/garcom" className="hover:text-orange-400 transition-colors">Garçom</a>
-            <span className="text-slate-700">|</span>
-            <a href="/kds" className="hover:text-orange-400 transition-colors">Cozinha (KDS)</a>
-            <span className="text-slate-700">|</span>
-            <a href="/entregador" className="hover:text-orange-400 transition-colors">Entregador</a>
-          </nav>
-        </div>
-      </header>
-
-      {/* Container de login centralizado e responsivo */}
-      <main className="flex flex-1 items-center justify-center p-4 sm:p-6">
-        <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900/80 p-6 sm:p-8 shadow-2xl backdrop-blur">
-          <div className="mb-6 text-center">
-            <h1 className={`${DISPLAY} text-2xl sm:text-3xl font-bold text-white mb-2`}>Entrar</h1>
-            <p className="text-xs sm:text-sm text-slate-400">Acesse com a sua conta para gerenciar a pizzaria</p>
-          </div>
-
-          {erro && (
-            <div className="mb-4 rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-center text-xs sm:text-sm text-red-400">
-              {erro}
+    <div className="flex min-h-[100dvh] w-full flex-col justify-between bg-fundo text-slate-100 antialiased select-none">
+      <div className="flex flex-1 items-center justify-center p-4">
+        <div className="w-full max-w-md space-y-6 rounded-3xl border border-white/10 bg-superficie p-8 shadow-2xl backdrop-blur-xl">
+          {/* Identidade de Marca */}
+          <div className="text-center space-y-2">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-marca/20 border border-marca/40 text-3xl shadow-inner">
+              🍕
             </div>
-          )}
+            <h1 className={`${DISPLAY} text-2xl font-black text-white tracking-wide uppercase pt-2`}>
+              Kikas Pizzaria <span className="text-marca">&</span> Petiscaria
+            </h1>
+            <p className="text-xs text-slate-400 font-medium">
+              Sistema de Gestão & Controle Operacional
+            </p>
+          </div>
 
+          {/* Form de Acesso */}
           <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+            {erro && (
+              <div role="alert" className="rounded-xl bg-red-950/80 border border-red-500/40 p-3.5 text-center text-xs font-semibold text-red-300 shadow">
+                {erro}
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider">
                 E-mail
               </label>
               <input
                 type="email"
                 required
+                placeholder="operador@kikaspizzaria.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="seu.email@exemplo.com"
-                className="w-full rounded-lg border border-slate-700 bg-slate-800/80 px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                className="w-full h-12 rounded-xl border border-white/15 bg-fundo px-4 text-sm font-medium text-white placeholder-slate-500 focus:border-marca focus:outline-none focus:ring-1 focus:ring-marca transition-all"
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+            <div className="space-y-1.5">
+              <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider">
                 Senha
               </label>
               <input
                 type="password"
                 required
+                placeholder="••••••••"
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
-                placeholder="••••••••"
-                className="w-full rounded-lg border border-slate-700 bg-slate-800/80 px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                className="w-full h-12 rounded-xl border border-white/15 bg-fundo px-4 text-sm font-medium text-white placeholder-slate-500 focus:border-marca focus:outline-none focus:ring-1 focus:ring-marca transition-all"
               />
             </div>
 
             <button
               type="submit"
               disabled={carregando}
-              className="mt-2 w-full rounded-lg bg-orange-600 px-4 py-3 text-sm font-bold text-white transition-all hover:bg-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50"
+              className="w-full h-12 rounded-xl bg-marca font-bold text-sm text-fundo shadow-lg active:bg-marca-claro disabled:opacity-50 transition-all flex items-center justify-center gap-2 mt-2"
             >
-              {carregando ? 'Entrando…' : 'Entrar no Sistema'}
+              {carregando ? 'Autenticando…' : 'Entrar no Sistema ➔'}
             </button>
           </form>
         </div>
-      </main>
+      </div>
+
+      {/* Assinatura do Desenvolvedor */}
+      <footer className="py-4 text-center border-t border-white/5 bg-rodape">
+        <p className="text-[11px] text-slate-500 font-medium tracking-wide">
+          Desenvolvido por <span className="text-slate-300 font-semibold">Matheus Thomaz</span>
+        </p>
+      </footer>
     </div>
   )
 }

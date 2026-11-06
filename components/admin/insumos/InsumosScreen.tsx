@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
 import { brl4, fmtQtd, nivelEstoque, norm, type Insumo } from '@/lib/admin'
 import { INPUT } from '@/lib/ui'
@@ -46,16 +47,21 @@ export default function InsumosScreen() {
       <PageHeader
         titulo="Insumos"
         descricao="Estoque e custo de cada matéria-prima. O custo unitário alimenta o CMV das fichas técnicas."
-        acao={<button type="button" className={BTN_RED} onClick={() => setForm({ insumo: null })}>Novo insumo</button>}
+        acao={
+          <div className="flex flex-wrap gap-2">
+            <Link href="/admin/fichas" className={BTN_GHOST}>Fichas técnicas</Link>
+            <button type="button" className={BTN_RED} onClick={() => setForm({ insumo: null })}>Novo insumo</button>
+          </div>
+        }
       />
 
       {alertas.length > 0 && (
-        <div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-3 border-l-4 border-[#D7372B] bg-white p-4">
+        <div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-3 border-l-4 border-perigo bg-superficie-alta p-4">
           <div>
-            <p className="font-semibold text-[#B42318]">
+            <p className="font-semibold text-red-400">
               {alertas.length === 1 ? '1 insumo abaixo do estoque mínimo' : `${alertas.length} insumos abaixo do estoque mínimo`}
             </p>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-slate-400">
               {alertas.slice(0, 6).map((a) => a.nome).join(', ')}
               {alertas.length > 6 ? ` e mais ${alertas.length - 6}` : ''}
             </p>
@@ -71,11 +77,11 @@ export default function InsumosScreen() {
           value={busca} onChange={(e) => setBusca(e.target.value)} />
       </div>
 
-      {erro && <p role="alert" className="mb-3 font-medium text-[#B42318]">Não foi possível carregar: {erro}</p>}
+      {erro && <p role="alert" className="mb-3 font-medium text-red-400">Não foi possível carregar: {erro}</p>}
 
-      <div className="overflow-x-auto bg-white">
+      <div className="overflow-x-auto bg-superficie-alta">
         <table className="w-full min-w-[44rem] text-left text-sm">
-          <thead className="border-b border-slate-300 text-slate-600">
+          <thead className="border-b border-white/15 text-slate-400">
             <tr>
               <th className="px-4 py-3 font-medium">Insumo</th>
               <th className="px-4 py-3 text-right font-medium">Em estoque</th>
@@ -85,11 +91,11 @@ export default function InsumosScreen() {
               <th className="px-4 py-3"><span className="sr-only">Ações</span></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200">
-            {loading && <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-600">Carregando…</td></tr>}
+          <tbody className="divide-y divide-white/10">
+            {loading && <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">Carregando…</td></tr>}
             {!loading && lista.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-slate-600">
+                <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
                   {insumos.length === 0 ? 'Nenhum insumo cadastrado. Comece pelo botão “Novo insumo”.' : 'Nenhum insumo encontrado.'}
                 </td>
               </tr>
@@ -97,11 +103,11 @@ export default function InsumosScreen() {
             {lista.map((i) => {
               const nivel = nivelEstoque(i)
               return (
-                <tr key={i.id} className={nivel === 'abaixo' ? 'bg-[#D7372B]/5' : ''}>
-                  <td className={`border-l-4 px-4 py-3 font-semibold ${nivel === 'abaixo' ? 'border-[#D7372B]' : 'border-transparent'}`}>
+                <tr key={i.id} className={nivel === 'abaixo' ? 'bg-perigo/10' : ''}>
+                  <td className={`border-l-4 px-4 py-3 font-semibold ${nivel === 'abaixo' ? 'border-perigo' : 'border-transparent'}`}>
                     {i.nome}
                   </td>
-                  <td className={`px-4 py-3 text-right tabular-nums ${nivel === 'abaixo' ? 'font-bold text-[#B42318]' : ''}`}>
+                  <td className={`px-4 py-3 text-right tabular-nums ${nivel === 'abaixo' ? 'font-bold text-red-400' : ''}`}>
                     {fmtQtd(i.quantidade_atual)} {i.unidade_medida}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums">{fmtQtd(i.estoque_minimo)} {i.unidade_medida}</td>
@@ -110,7 +116,7 @@ export default function InsumosScreen() {
                     {nivel === 'abaixo' && (
                       <>
                         <Tag tone="red">Abaixo do mínimo</Tag>
-                        <span className="mt-0.5 block text-xs text-[#B42318]">
+                        <span className="mt-0.5 block text-xs text-red-400">
                           {i.quantidade_atual < 0 ? 'estoque negativo, confira a contagem' : `faltam ${fmtQtd(i.estoque_minimo - i.quantidade_atual)} ${i.unidade_medida}`}
                         </span>
                       </>

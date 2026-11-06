@@ -47,14 +47,14 @@ export default function MovimentarEstoqueModal({ insumo, onClose, onSaved }: Pro
   return (
     <Modal title={`Movimentar: ${insumo.nome}`} onClose={onClose}>
       <form onSubmit={salvar} className="space-y-3">
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-slate-400">
           Estoque atual: <strong className="tabular-nums">{fmtQtd(insumo.quantidade_atual)} {insumo.unidade_medida}</strong>
         </p>
 
-        <div className="grid grid-cols-2 gap-1 rounded-md bg-slate-100 p-1" role="group" aria-label="Tipo de movimentação">
+        <div className="grid grid-cols-2 gap-1 rounded-md bg-white/5 p-1" role="group" aria-label="Tipo de movimentação">
           {([['entrada', 'Entrada de compra'], ['contagem', 'Contagem (inventário)']] as const).map(([v, r]) => (
             <button key={v} type="button" aria-pressed={modo === v} onClick={() => setModo(v)}
-              className={'rounded py-2 text-sm font-semibold ' + (modo === v ? 'bg-[#14181F] text-white' : 'text-slate-700 hover:bg-white')}>
+              className={'rounded py-2 text-sm font-semibold ' + (modo === v ? 'bg-marca text-fundo' : 'text-slate-300 hover:bg-white/10')}>
               {r}
             </button>
           ))}
@@ -77,7 +77,7 @@ export default function MovimentarEstoqueModal({ insumo, onClose, onSaved }: Pro
             Estoque ficará em <strong className="tabular-nums">{fmtQtd(ficara)} {insumo.unidade_medida}</strong>
           </p>
         )}
-        {erro && <p role="alert" className="text-sm font-medium text-[#B42318]">{erro}</p>}
+        {erro && <p role="alert" className="text-sm font-medium text-red-400">{erro}</p>}
 
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" className={BTN_GHOST} onClick={onClose}>Cancelar</button>

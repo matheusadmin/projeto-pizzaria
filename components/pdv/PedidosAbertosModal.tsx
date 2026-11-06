@@ -17,7 +17,7 @@ interface ItemPedido {
 interface PedidoAberto {
   id: string
   numero: number
-  tipo: 'mesa' | 'balcao' | 'delivery'
+  tipo: 'mesa' | 'balcao' | 'retirada' | 'delivery'
   mesa: string | null
   status: string
   pago: boolean
@@ -29,7 +29,7 @@ interface PedidoAberto {
   total: number
   observacoes: string | null
   created_at: string
-  pedido_itens: ItemPedido[]
+  itens_pedido: ItemPedido[]
 }
 
 interface Props {
@@ -57,7 +57,7 @@ export default function PedidosAbertosModal({ onClose, onSucesso }: Props) {
     setLoading(true)
     const { data, error } = await supabase
       .from('pedidos')
-      .select('*, pedido_itens(*)')
+      .select('*, itens_pedido(*)')
       .eq('pago', false)
       .neq('status', 'cancelado')
       .order('created_at', { ascending: false })
@@ -79,7 +79,8 @@ export default function PedidosAbertosModal({ onClose, onSucesso }: Props) {
     setErro(null)
   }
 
-  const pedidosFiltrados = pedidos.filter((p) => p.tipo === aba)
+  // Retirada aparece junto do Balcão: os dois são pagos e entregues no próprio caixa.
+  const pedidosFiltrados = pedidos.filter((p) => (aba === 'balcao' ? p.tipo === 'balcao' || p.tipo === 'retirada' : p.tipo === aba))
 
   // Cálculos do Checkout
   const subtotal = pedidoSelecionado ? pedidoSelecionado.subtotal || pedidoSelecionado.total : 0
@@ -131,11 +132,11 @@ export default function PedidosAbertosModal({ onClose, onSucesso }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-      <div className="flex h-[90vh] w-full max-w-5xl flex-col rounded-xl bg-[#1A212B] text-slate-100 shadow-2xl border border-white/10 overflow-hidden">
+      <div className="flex h-[90vh] w-full max-w-5xl flex-col rounded-xl bg-superficie-alta text-slate-100 shadow-2xl border border-white/10 overflow-hidden">
         {/* Cabeçalho */}
-        <div className="flex items-center justify-between border-b border-white/10 px-6 py-4 bg-[#14181F]">
+        <div className="flex items-center justify-between border-b border-white/10 px-6 py-4 bg-superficie">
           <div>
-            <h2 className={`${DISPLAY} text-2xl font-bold text-orange-500`}>📋 Caixas & Frentes Pendentes de Recebimento</h2>
+            <h2 className={`${DISPLAY} text-2xl font-bold text-marca`}>📋 Caixas & Frentes Pendentes de Recebimento</h2>
             <p className="text-xs text-slate-400">Somente pedidos com pagamento confirmado pelo Caixa entram na DRE/Financeiro.</p>
           </div>
           <button type="button" onClick={onClose} className="rounded-lg bg-white/10 px-3 py-1.5 text-sm font-semibold hover:bg-white/20">
@@ -144,13 +145,13 @@ export default function PedidosAbertosModal({ onClose, onSucesso }: Props) {
         </div>
 
         {/* Abas por Frente */}
-        <div className="flex border-b border-white/10 bg-[#10151C] px-6">
+        <div className="flex border-b border-white/10 bg-fundo px-6">
           <button
             type="button"
             onClick={() => setAba('mesa')}
             className={
               'flex items-center gap-2 border-b-2 px-6 py-3.5 text-sm font-bold transition-colors ' +
-              (aba === 'mesa' ? 'border-orange-500 text-orange-400 bg-orange-500/10' : 'border-transparent text-slate-400 hover:text-white')
+              (aba === 'mesa' ? 'border-marca text-marca bg-marca/10' : 'border-transparent text-slate-400 hover:text-white')
             }
           >
             🪑 Mesas Ativas ({pedidos.filter((p) => p.tipo === 'mesa').length})
@@ -160,17 +161,17 @@ export default function PedidosAbertosModal({ onClose, onSucesso }: Props) {
             onClick={() => setAba('balcao')}
             className={
               'flex items-center gap-2 border-b-2 px-6 py-3.5 text-sm font-bold transition-colors ' +
-              (aba === 'balcao' ? 'border-orange-500 text-orange-400 bg-orange-500/10' : 'border-transparent text-slate-400 hover:text-white')
+              (aba === 'balcao' ? 'border-marca text-marca bg-marca/10' : 'border-transparent text-slate-400 hover:text-white')
             }
           >
-            📦 Balcão ({pedidos.filter((p) => p.tipo === 'balcao').length})
+            📦 Balcão / Retirada ({pedidos.filter((p) => p.tipo === 'balcao' || p.tipo === 'retirada').length})
           </button>
           <button
             type="button"
             onClick={() => setAba('delivery')}
             className={
               'flex items-center gap-2 border-b-2 px-6 py-3.5 text-sm font-bold transition-colors ' +
-              (aba === 'delivery' ? 'border-orange-500 text-orange-400 bg-orange-500/10' : 'border-transparent text-slate-400 hover:text-white')
+              (aba === 'delivery' ? 'border-marca text-marca bg-marca/10' : 'border-transparent text-slate-400 hover:text-white')
             }
           >
             🛵 Deliveries em Rota / Aguardando Caixa ({pedidos.filter((p) => p.tipo === 'delivery').length})
@@ -191,7 +192,7 @@ export default function PedidosAbertosModal({ onClose, onSucesso }: Props) {
               {pedidosFiltrados.map((p) => {
                 const retornouDoEntregador = p.status === 'entregue' && !p.pago
                 return (
-                  <div key={p.id} className={`flex flex-col justify-between rounded-lg border p-4 shadow ${retornouDoEntregador ? 'border-green-500/80 bg-green-950/20' : 'border-white/10 bg-[#14181F]'}`}>
+                  <div key={p.id} className={`flex flex-col justify-between rounded-lg border p-4 shadow ${retornouDoEntregador ? 'border-emerald-500/80 bg-emerald-950/20' : 'border-white/10 bg-superficie'}`}>
                     <div>
                       <div className="flex justify-between items-start border-b border-white/10 pb-2 mb-3">
                         <div>
@@ -200,7 +201,7 @@ export default function PedidosAbertosModal({ onClose, onSucesso }: Props) {
                           </span>
                           <span className="block text-xs text-slate-400">Pedido #{p.numero}</span>
                         </div>
-                        <span className={`rounded px-2 py-0.5 text-xs font-semibold uppercase ${retornouDoEntregador ? 'bg-green-500 text-black' : 'bg-orange-500/20 text-orange-300'}`}>
+                        <span className={`rounded px-2 py-0.5 text-xs font-semibold uppercase ${retornouDoEntregador ? 'bg-emerald-500 text-black' : 'bg-marca/20 text-marca'}`}>
                           {retornouDoEntregador ? '🛵 Motoboy Retornou' : p.status}
                         </span>
                       </div>
@@ -209,7 +210,7 @@ export default function PedidosAbertosModal({ onClose, onSucesso }: Props) {
                       {p.endereco_entrega && <p className="text-xs text-slate-400 mt-0.5">📍 {p.endereco_entrega}</p>}
 
                       <div className="mt-3 space-y-1 bg-black/20 p-2 rounded text-xs border border-white/5">
-                        {p.pedido_itens?.map((item) => (
+                        {p.itens_pedido?.map((item) => (
                           <div key={item.id} className="flex justify-between text-slate-300">
                             <span>{item.quantidade}x {item.nome_produto} ({item.nome_tamanho})</span>
                             <span className="font-semibold text-slate-200">{brl(item.preco_unitario * item.quantidade)}</span>
@@ -221,12 +222,12 @@ export default function PedidosAbertosModal({ onClose, onSucesso }: Props) {
                     <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
                       <div>
                         <span className="block text-xs text-slate-400">A Receber</span>
-                        <span className={`${DISPLAY} text-xl font-bold text-orange-400`}>{brl(p.total)}</span>
+                        <span className={`${DISPLAY} text-xl font-bold text-marca`}>{brl(p.total)}</span>
                       </div>
                       <button
                         type="button"
                         onClick={() => abrirCheckout(p)}
-                        className="rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-500 transition-colors shadow"
+                        className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 transition-colors shadow"
                       >
                         💳 Receber & Baixar
                       </button>
@@ -242,9 +243,9 @@ export default function PedidosAbertosModal({ onClose, onSucesso }: Props) {
       {/* Modal de Checkout / Fechamento de Conta */}
       {pedidoSelecionado && (
         <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
-          <div className="w-full max-w-lg rounded-xl bg-[#1A212B] p-6 text-slate-100 border border-orange-500/30 shadow-2xl space-y-4">
+          <div className="w-full max-w-lg rounded-xl bg-superficie-alta p-6 text-slate-100 border border-marca/30 shadow-2xl space-y-4">
             <div className="flex justify-between items-center border-b border-white/10 pb-3">
-              <h3 className={`${DISPLAY} text-2xl font-bold text-orange-400`}>
+              <h3 className={`${DISPLAY} text-2xl font-bold text-marca`}>
                 Conferência de Recebimento — {pedidoSelecionado.tipo === 'mesa' ? `Mesa ${pedidoSelecionado.mesa}` : `Pedido #${pedidoSelecionado.numero}`}
               </h3>
               <button type="button" onClick={() => setPedidoSelecionado(null)} className="text-slate-400 hover:text-white">✕</button>
@@ -257,7 +258,7 @@ export default function PedidosAbertosModal({ onClose, onSucesso }: Props) {
                 <select
                   value={formaPagamento}
                   onChange={(e) => setFormaPagamento(e.target.value)}
-                  className="w-full rounded-md border border-white/20 bg-[#14181F] p-2.5 text-white font-medium focus:outline-none focus:border-orange-500"
+                  className="w-full rounded-md border border-white/20 bg-superficie p-2.5 text-white font-medium focus:outline-none focus:border-marca"
                 >
                   <option value="Pix">📱 Pix</option>
                   <option value="Cartão de Crédito">💳 Cartão de Crédito</option>
@@ -277,7 +278,7 @@ export default function PedidosAbertosModal({ onClose, onSucesso }: Props) {
                       step="0.5"
                       value={taxaEntrega}
                       onChange={(e) => setTaxaEntrega(Number(e.target.value))}
-                      className="w-full rounded-md border border-white/20 bg-[#14181F] p-2 text-white font-medium focus:outline-none focus:border-orange-500"
+                      className="w-full rounded-md border border-white/20 bg-superficie p-2 text-white font-medium focus:outline-none focus:border-marca"
                     />
                   </div>
                   <div>
@@ -287,7 +288,7 @@ export default function PedidosAbertosModal({ onClose, onSucesso }: Props) {
                       placeholder="Nome do Motoboy"
                       value={entregadorNome}
                       onChange={(e) => setEntregadorNome(e.target.value)}
-                      className="w-full rounded-md border border-white/20 bg-[#14181F] p-2 text-white font-medium focus:outline-none focus:border-orange-500"
+                      className="w-full rounded-md border border-white/20 bg-superficie p-2 text-white font-medium focus:outline-none focus:border-marca"
                     />
                   </div>
                 </div>
@@ -301,14 +302,14 @@ export default function PedidosAbertosModal({ onClose, onSucesso }: Props) {
                     <button
                       type="button"
                       onClick={() => setDescontoTipo('valor')}
-                      className={`px-2 py-0.5 rounded ${descontoTipo === 'valor' ? 'bg-orange-600 text-white' : 'bg-white/10 text-slate-400'}`}
+                      className={`px-2 py-0.5 rounded ${descontoTipo === 'valor' ? 'bg-marca text-fundo' : 'bg-white/10 text-slate-400'}`}
                     >
                       R$
                     </button>
                     <button
                       type="button"
                       onClick={() => setDescontoTipo('porcentagem')}
-                      className={`px-2 py-0.5 rounded ${descontoTipo === 'porcentagem' ? 'bg-orange-600 text-white' : 'bg-white/10 text-slate-400'}`}
+                      className={`px-2 py-0.5 rounded ${descontoTipo === 'porcentagem' ? 'bg-marca text-fundo' : 'bg-white/10 text-slate-400'}`}
                     >
                       %
                     </button>
@@ -319,12 +320,12 @@ export default function PedidosAbertosModal({ onClose, onSucesso }: Props) {
                   step="0.5"
                   value={descontoValor}
                   onChange={(e) => setDescontoValor(Number(e.target.value))}
-                  className="w-full rounded-md border border-white/20 bg-[#14181F] p-2 text-white font-medium focus:outline-none focus:border-orange-500"
+                  className="w-full rounded-md border border-white/20 bg-superficie p-2 text-white font-medium focus:outline-none focus:border-marca"
                 />
               </div>
 
               {/* Resumo dos Valores */}
-              <div className="rounded-lg bg-[#14181F] p-3 space-y-1.5 border border-white/10 pt-3">
+              <div className="rounded-lg bg-superficie p-3 space-y-1.5 border border-white/10 pt-3">
                 <div className="flex justify-between text-xs text-slate-400">
                   <span>Valor dos Produtos:</span>
                   <span>{brl(subtotal)}</span>
@@ -336,14 +337,14 @@ export default function PedidosAbertosModal({ onClose, onSucesso }: Props) {
                   </div>
                 )}
                 {valorDesconto > 0 && (
-                  <div className="flex justify-between text-xs text-green-400">
+                  <div className="flex justify-between text-xs text-emerald-400">
                     <span>Desconto:</span>
                     <span>-{brl(valorDesconto)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-base font-bold text-white border-t border-white/10 pt-2">
                   <span>Valor Efetivamente Recebido:</span>
-                  <span className={`${DISPLAY} text-2xl text-orange-400`}>{brl(totalFinal)}</span>
+                  <span className={`${DISPLAY} text-2xl text-marca`}>{brl(totalFinal)}</span>
                 </div>
               </div>
             </div>
@@ -354,7 +355,7 @@ export default function PedidosAbertosModal({ onClose, onSucesso }: Props) {
               type="button"
               onClick={liquidarConta}
               disabled={liquidando}
-              className="w-full rounded-md bg-green-600 py-3 font-semibold text-white hover:bg-green-500 transition-colors disabled:opacity-50 shadow-lg text-base"
+              className="w-full rounded-md bg-emerald-600 py-3 font-semibold text-white hover:bg-emerald-500 transition-colors disabled:opacity-50 shadow-lg text-base"
             >
               {liquidando ? 'Registrando entrada no Caixa…' : '✅ Confirmar Recebimento e Gravar na DRE'}
             </button>

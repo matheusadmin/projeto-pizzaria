@@ -1,26 +1,45 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+ * Tokens de design — Kikas Pizzaria & Petiscaria.
+ * Fonte única das cores do sistema. Use as classes geradas (bg-fundo, text-marca,
+ * border-perigo, bg-sucesso/20 ...) em vez de hex soltos nos componentes.
+ */
+@theme {
+  /* Superfícies (Dark Mode profundo) */
+  --color-fundo: #0c1017;            /* fundo de todas as telas */
+  --color-superficie: #14181f;       /* header, cartões, painéis */
+  --color-superficie-alta: #1a212b;  /* modais, tabelas, cartões elevados */
+  --color-superficie-hover: #2a303a; /* hover de botões escuros */
+  --color-rodape: #0a0d13;           /* rodapé / créditos */
+
+  /* Marca: âmbar / dourado. Sobre ela use texto escuro (text-fundo): branco não passa no contraste. */
+  --color-marca: #f2b705;
+  --color-marca-claro: #ffc933;      /* hover / active */
+  --color-marca-escuro: #8a6500;     /* texto de marca sobre fundo claro */
+
+  /* Semânticas */
+  --color-sucesso: #047857;          /* verde esmeralda: concluir, pronto, pago */
+  --color-sucesso-claro: #34d399;    /* texto/indicador de sucesso sobre fundo escuro */
+  --color-perigo: #d7372b;           /* erro, atraso, cancelar */
+  --color-perigo-escuro: #b42318;
+
+  /* Texto */
+  --color-texto: #f1f5f9;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-body);
+  --font-mono: ui-monospace, monospace;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-fundo);
+  color: var(--color-texto);
+}
+
+/* Telas de altura cheia (h-screen / h-[100dvh]) ocupam só o espaço abaixo da barra de navegação. */
+.app-conteudo > .h-screen,
+.app-conteudo > [class~="h-[100dvh]"] {
+  height: 100%;
 }

@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Kikas Pizzaria & Petiscaria — Sistema operacional
 
-## Getting Started
+Next.js + Supabase. Dark Mode profissional, pensado para cozinha, balcão e salão.
+Desenvolvido por Matheus Thomaz.
 
-First, run the development server:
+## Telas
+| Rota | Função | Perfis |
+|---|---|---|
+| `/` | Hub central (RBAC) | todos |
+| `/pdv` | PDV: Salão, Balcão, Retirada, Entrega (taxa por bairro) | admin, dev, caixa |
+| `/kds` | Cozinha em colunas: Em preparo / Pronto | admin, dev, caixa, cozinha |
+| `/garcom` | Lançamento por etapas no salão | admin, dev, caixa |
+| `/entregador` | Rotas e fechamento de entregas | todos |
+| `/caixa` | Controle de caixa: abertura com fundo de troco, sangria, reforço e fechamento conferido por forma de pagamento | admin, dev, caixa |
+| `/pedidos` | Acompanhamento, baixa financeira (com pagamento dividido) e botão "Avisar cliente" no WhatsApp | todos |
+| `/admin/insumos`, `/admin/fichas` | Estoque e fichas técnicas (Insumos está no Setor Operacional do Hub) | admin, dev |
+| `/admin/dashboard` | Dashboard: KPIs, faturamento por dia, mais vendidos, horário de pico, canais e pagamentos | admin, dev |
+| `/admin/financeiro` | DRE (com despesas e resultado operacional), margem por produto e contas a pagar/receber | admin, dev |
+| `/admin/compras` | Lista de compras sugerida pelo estoque mínimo (copiar, WhatsApp, imprimir) | admin, dev |
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Configurar
+1. `.env.local` com `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+2. Rodar no SQL Editor do Supabase, nesta ordem: `supabase/migrations/20261105_retirada.sql` (tipo "retirada") e `supabase/migrations/20261106_caixa_contas_pagamentos.sql` (caixa, pagamentos por pedido, contas a pagar/receber e RLS).
+3. Editar `lib/taxasEntrega.ts` com as cidades, bairros e taxas reais.
+4. `npm install && npm run dev`.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Design
+Tokens de cor em `app/globals.css` (`bg-fundo`, `bg-superficie`, `text-marca`, `bg-sucesso`...). Não use hex solto nos componentes.
+Campos: `INPUT` de `lib/ui.ts`. Rotas e permissões: `lib/rotas.ts`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Novidades (06/11/2026)
+- **Caixa**: um caixa aberto por vez. Todo pedido que vira "pago" gera um registro em `pedido_pagamentos` (trigger no banco) ligado ao caixa aberto; o fechamento compara esperado x contado por forma.
+- **Pagamento dividido**: na baixa do `/pedidos`, escolha "Dividir pagamento". O pedido fica com forma `Misto` e cada parte entra no caixa na sua forma.
+- **Contas a pagar/receber**: entram no DRE pelo mês de vencimento. Suporta repetição mensal (aluguel, salários).
+- **CRM por telefone**: o PDV reconhece o cliente pelo histórico de pedidos (nome, último endereço, favorito). O telefone passa a ser gravado só com dígitos; pedidos antigos formatados não são reconhecidos.
+- **WhatsApp**: links `wa.me` com mensagem pronta por etapa (sem API). Envio automático exige a API oficial (servidor + token).

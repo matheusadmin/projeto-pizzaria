@@ -72,11 +72,12 @@ export default function FichasScreen() {
       <PageHeader
         titulo="Fichas técnicas"
         descricao="Defina quanto de cada insumo vai em cada produto e tamanho. É a ficha que calcula o CMV e baixa o estoque a cada venda."
+        acao={<Link href="/admin/cardapio" className="rounded-md border border-white/20 px-3 py-1.5 text-sm font-medium text-slate-200 hover:bg-white/5">＋ Cadastrar / editar produtos</Link>}
       />
 
-      {erro && <p role="alert" className="mb-3 font-medium text-[#B42318]">Não foi possível carregar: {erro}</p>}
+      {erro && <p role="alert" className="mb-3 font-medium text-red-400">Não foi possível carregar: {erro}</p>}
       {loading ? (
-        <p className="text-slate-600">Carregando…</p>
+        <p className="text-slate-400">Carregando…</p>
       ) : (
         <div className="grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)]">
           <ProdutoLista produtos={produtos} semFicha={semFicha} selecionadoId={selecionadoId} onSelect={setSelecionadoId} />
@@ -84,7 +85,7 @@ export default function FichasScreen() {
             {produto ? (
               <FichaEditor key={produto.id} produto={produto} insumos={insumos} onChanged={carregarSemFicha} />
             ) : (
-              <div className="bg-white p-8 text-center text-slate-600">
+              <div className="bg-superficie-alta p-8 text-center text-slate-400">
                 <p>Escolha um produto na lista para montar ou revisar a ficha técnica.</p>
                 {insumos.length === 0 && (
                   <p className="mt-2">

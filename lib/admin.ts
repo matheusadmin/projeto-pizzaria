@@ -75,10 +75,10 @@ export function nivelMargem(cmvPct: number | null, meta: number): NivelMargem {
 }
 
 export const COR_NIVEL: Record<NivelMargem, { texto: string; fundo: string; rotulo: string }> = {
-  boa: { texto: 'text-[#2F7D4F]', fundo: 'bg-[#2F7D4F]', rotulo: 'Dentro da meta' },
-  atencao: { texto: 'text-[#8A6500]', fundo: 'bg-[#F2B705]', rotulo: 'Atenção' },
-  ruim: { texto: 'text-[#D7372B]', fundo: 'bg-[#D7372B]', rotulo: 'Margem baixa' },
-  sem_ficha: { texto: 'text-slate-500', fundo: 'bg-slate-400', rotulo: 'Sem ficha técnica' },
+  boa: { texto: 'text-sucesso-claro', fundo: 'bg-sucesso', rotulo: 'Dentro da meta' },
+  atencao: { texto: 'text-marca', fundo: 'bg-marca', rotulo: 'Atenção' },
+  ruim: { texto: 'text-perigo', fundo: 'bg-perigo', rotulo: 'Margem baixa' },
+  sem_ficha: { texto: 'text-slate-400', fundo: 'bg-slate-400', rotulo: 'Sem ficha técnica' },
 }
 
 // ---------- Formatação ----------

@@ -1,9 +1,10 @@
-import RequireRole from '@/components/RequireRole'
+import { RequireRole } from '@/components/RequireRole'
 import EntregadorScreen from '@/components/entregador/EntregadorScreen'
+import { ROTAS } from '@/lib/rotas'
 
 export default function EntregadorPage() {
   return (
-    <RequireRole roles={['admin', 'caixa', 'cozinha', 'entregador']}>
+    <RequireRole roles={ROTAS.entregador.roles}>
       <EntregadorScreen />
     </RequireRole>
   )

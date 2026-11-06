@@ -127,7 +127,7 @@ export default function FichaEditor({ produto, insumos, onChanged }: Props) {
   }
 
   if (produto.produto_tamanhos.length === 0) {
-    return <p className="bg-white p-6 text-slate-600">Este produto não tem tamanhos/preços cadastrados. Cadastre um tamanho (ex.: “Único”) para montar a ficha.</p>
+    return <p className="bg-superficie-alta p-6 text-slate-400">Este produto não tem tamanhos/preços cadastrados. Cadastre um tamanho (ex.: “Único”) para montar a ficha.</p>
   }
 
   return (
@@ -138,7 +138,7 @@ export default function FichaEditor({ produto, insumos, onChanged }: Props) {
           {produto.produto_tamanhos.map((t) => (
             <button key={t.id} type="button" aria-pressed={t.id === tamanhoId} onClick={() => setTamanhoId(t.id)}
               className={'rounded-md border px-3 py-1.5 text-sm font-semibold ' +
-                (t.id === tamanhoId ? 'border-[#14181F] bg-[#14181F] text-white' : 'border-slate-300 bg-white hover:border-[#14181F]')}>
+                (t.id === tamanhoId ? 'border-marca bg-marca text-fundo' : 'border-white/15 bg-superficie-alta hover:border-marca/60')}>
               {t.nome_tamanho}
             </button>
           ))}
@@ -153,19 +153,19 @@ export default function FichaEditor({ produto, insumos, onChanged }: Props) {
           ['CMV sobre o preço', fmtPct(cmvPct), ''],
           ['Margem bruta', fmtPct(margemPct), cor.texto],
         ].map(([rotulo, valor, classe]) => (
-          <div key={rotulo} className="bg-white px-4 py-3">
-            <dt className="text-sm text-slate-600">{rotulo}</dt>
+          <div key={rotulo} className="bg-superficie-alta px-4 py-3">
+            <dt className="text-sm text-slate-400">{rotulo}</dt>
             <dd className={`${DISPLAY} text-3xl font-bold tabular-nums ${classe}`}>{valor}</dd>
           </div>
         ))}
       </dl>
       {cmvPct != null && <p className={`text-sm font-medium ${cor.texto}`}>{cor.rotulo} (meta de CMV: até {META_CMV_PADRAO}%)</p>}
 
-      {erro && <p role="alert" className="font-medium text-[#B42318]">{erro}</p>}
+      {erro && <p role="alert" className="font-medium text-red-400">{erro}</p>}
 
-      <div className="overflow-x-auto bg-white">
+      <div className="overflow-x-auto bg-superficie-alta">
         <table className="w-full min-w-[38rem] text-left text-sm">
-          <thead className="border-b border-slate-300 text-slate-600">
+          <thead className="border-b border-white/15 text-slate-400">
             <tr>
               <th className="px-4 py-3 font-medium">Insumo</th>
               <th className="px-4 py-3 font-medium">Quantidade por unidade vendida</th>
@@ -175,9 +175,9 @@ export default function FichaEditor({ produto, insumos, onChanged }: Props) {
               <th className="px-4 py-3"><span className="sr-only">Remover</span></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200">
+          <tbody className="divide-y divide-white/10">
             {linhas.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-600">
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">
                 Nenhum insumo vinculado a este tamanho. Sem ficha técnica o CMV fica zerado e o estoque não é baixado.
               </td></tr>
             )}
@@ -194,7 +194,7 @@ export default function FichaEditor({ produto, insumos, onChanged }: Props) {
                       defaultValue={numParaInput(l.quantidade_necessaria)} disabled={ocupado}
                       onBlur={(e) => salvarQuantidade(l, e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()} />
-                    <span className="text-slate-600">{l.ins?.unidade_medida}</span>
+                    <span className="text-slate-400">{l.ins?.unidade_medida}</span>
                   </div>
                 </td>
                 <td className="px-4 py-2 text-right tabular-nums">{l.ins ? `${brl4(l.ins.custo_unitario)} / ${l.ins.unidade_medida}` : '—'}</td>
@@ -213,40 +213,40 @@ export default function FichaEditor({ produto, insumos, onChanged }: Props) {
       </div>
 
       {/* Vincular insumo */}
-      <form className="flex flex-wrap items-end gap-3 bg-white p-4"
+      <form className="flex flex-wrap items-end gap-3 bg-superficie-alta p-4"
         onSubmit={(e) => { e.preventDefault(); adicionar() }}>
-        <label className="min-w-[12rem] flex-1 space-y-1 text-sm font-medium text-slate-700">
+        <label className="min-w-[12rem] flex-1 space-y-1 text-sm font-medium text-slate-300">
           Vincular insumo
           <select className={INPUT} value={novoInsumo} onChange={(e) => setNovoInsumo(e.target.value)}>
             <option value="">Escolha…</option>
             {disponiveis.map((i) => <option key={i.id} value={i.id}>{i.nome}</option>)}
           </select>
         </label>
-        <label className="w-40 space-y-1 text-sm font-medium text-slate-700">
+        <label className="w-40 space-y-1 text-sm font-medium text-slate-300">
           Quantidade {insumoNovo ? `(${insumoNovo.unidade_medida})` : ''}
           <input className={INPUT} inputMode="decimal" value={novaQtd} onChange={(e) => setNovaQtd(e.target.value)} />
         </label>
         <button type="submit" className={BTN_DARK} disabled={ocupado}>Adicionar à ficha</button>
         {insumos.length === 0 && (
-          <p className="w-full text-sm text-slate-600">Cadastre insumos primeiro, na tela de Insumos.</p>
+          <p className="w-full text-sm text-slate-400">Cadastre insumos primeiro, na tela de Insumos.</p>
         )}
       </form>
 
       {/* Copiar de outro tamanho */}
       {tamanhosComFicha.length > 0 && (
-        <div className="flex flex-wrap items-end gap-3 bg-white p-4">
-          <label className="space-y-1 text-sm font-medium text-slate-700">
+        <div className="flex flex-wrap items-end gap-3 bg-superficie-alta p-4">
+          <label className="space-y-1 text-sm font-medium text-slate-300">
             Copiar ficha do tamanho
             <select className={INPUT} value={origemAtual} onChange={(e) => setOrigem(e.target.value)}>
               {tamanhosComFicha.map((t) => <option key={t.id} value={t.id}>{t.nome_tamanho}</option>)}
             </select>
           </label>
-          <label className="w-32 space-y-1 text-sm font-medium text-slate-700">
+          <label className="w-32 space-y-1 text-sm font-medium text-slate-300">
             Multiplicar por
             <input className={INPUT} inputMode="decimal" value={fator} onChange={(e) => setFator(e.target.value)} />
           </label>
           <button type="button" className={BTN_GHOST} disabled={ocupado} onClick={copiar}>Copiar para {tamanho?.nome_tamanho}</button>
-          <p className="w-full text-xs text-slate-500">
+          <p className="w-full text-xs text-slate-400">
             Ex.: de 30cm para 40cm, use 1,6 para escalar as quantidades. Insumos que já estão nesta ficha não são alterados.
           </p>
         </div>

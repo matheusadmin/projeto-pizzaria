@@ -27,3 +27,15 @@ export function paraTimestamps(de: string, ate: string) {
   fim.setDate(fim.getDate() + 1)
   return { inicio: ini.toISOString(), fim: fim.toISOString() }
 }
+
+/** Período imediatamente anterior, com o mesmo número de dias (para comparar "vs período anterior"). */
+export function periodoAnterior(de: string, ate: string): { de: string; ate: string } {
+  const ini = new Date(`${de}T00:00:00`)
+  const fim = new Date(`${ate}T00:00:00`)
+  const dias = Math.round((fim.getTime() - ini.getTime()) / 86_400_000) + 1
+  const antFim = new Date(ini)
+  antFim.setDate(antFim.getDate() - 1)
+  const antIni = new Date(antFim)
+  antIni.setDate(antIni.getDate() - (dias - 1))
+  return { de: iso(antIni), ate: iso(antFim) }
+}

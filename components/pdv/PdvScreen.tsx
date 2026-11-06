@@ -33,7 +33,7 @@ export default function PdvScreen() {
     [produtos, categoriaAtiva]
   )
 
-  const taxa = meta.tipo === 'delivery' ? meta.taxaEntrega : 0
+  const taxa = meta.tipo === 'delivery' ? meta.taxaEntrega : 0 // retirada não paga taxa
   const total = round2(cart.subtotal + taxa)
 
   useEffect(() => {
@@ -58,16 +58,16 @@ export default function PdvScreen() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-[#E9ECEF] text-[#14181F]">
-      <header className="flex items-center justify-between bg-[#14181F] px-4 py-3 text-white">
+    <div className="flex h-screen flex-col bg-fundo text-slate-100">
+      <header className="flex items-center justify-between border-b border-white/10 bg-superficie px-4 py-3 text-white">
         <div className="flex items-center gap-4">
-          <h1 className={`${DISPLAY} text-2xl font-bold text-orange-500`}>Caixa / PDV</h1>
+          <h1 className={`${DISPLAY} text-2xl font-bold text-marca`}>Caixa / PDV</h1>
           <button
             type="button"
             onClick={() => setModalAbertos(true)}
-            className="rounded-md bg-orange-600 hover:bg-orange-500 px-3.5 py-1.5 text-sm font-semibold text-white transition-colors shadow flex items-center gap-2"
+            className="rounded-md bg-marca hover:bg-marca-claro px-3.5 py-1.5 text-sm font-semibold text-fundo transition-colors shadow flex items-center gap-2"
           >
-            📋 Pedidos em Aberto (Mesas / Balcão / Delivery)
+            📋 Pedidos em Aberto (Mesas / Balcão / Retirada / Delivery)
           </button>
         </div>
         <div className="flex items-center gap-4 text-sm">
@@ -77,27 +77,27 @@ export default function PdvScreen() {
       </header>
 
       {aviso && (
-        <p role="status" className="bg-[#2F7D4F] px-4 py-2 text-center font-semibold text-white">{aviso}</p>
+        <p role="status" className="bg-sucesso px-4 py-2 text-center font-semibold text-white">{aviso}</p>
       )}
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <section className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
           {loading ? (
-            <p className="py-12 text-center text-slate-600">Carregando cardápio…</p>
+            <p className="py-12 text-center text-slate-400">Carregando cardápio…</p>
           ) : erroCatalogo ? (
             <div className="space-y-3 py-12 text-center">
-              <p className="font-medium text-[#B42318]">Não foi possível carregar os produtos.</p>
-              <p className="text-sm text-slate-600">{erroCatalogo}</p>
+              <p className="font-medium text-red-400">Não foi possível carregar os produtos.</p>
+              <p className="text-sm text-slate-400">{erroCatalogo}</p>
               <button
                 type="button"
                 onClick={recarregar}
-                className="rounded-md bg-[#D7372B] px-4 py-2 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D7372B]"
+                className="rounded-md bg-marca px-4 py-2 text-sm font-semibold text-fundo hover:bg-marca-claro focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca"
               >
                 Tentar novamente
               </button>
             </div>
           ) : categorias.length === 0 ? (
-            <p className="py-12 text-center text-slate-600">Nenhuma categoria cadastrada.</p>
+            <p className="py-12 text-center text-slate-400">Nenhuma categoria cadastrada.</p>
           ) : (
             <>
               <CategoryTabs

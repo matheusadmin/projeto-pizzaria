@@ -1,7 +1,7 @@
 // Tipos espelhando o schema criado nas Etapas 1 e 2.
 
-export type Role = 'admin' | 'caixa' | 'cozinha' | 'entregador'
-export type TipoPedido = 'delivery' | 'mesa' | 'balcao'
+export type Role = 'admin' | 'dev' | 'caixa' | 'cozinha' | 'entregador'
+export type TipoPedido = 'delivery' | 'mesa' | 'balcao' | 'retirada'
 export type StatusPedido =
   | 'pendente' | 'em_preparo' | 'pronto' | 'saiu_para_entrega' | 'entregue' | 'cancelado'
 export type FormaPagamento = 'dinheiro' | 'pix' | 'cartao_credito' | 'cartao_debito' | 'outro'
@@ -45,6 +45,8 @@ export interface PedidoMeta {
   clienteNome: string
   clienteTelefone: string
   endereco: string
+  cidade: string
+  bairro: string       // nome do bairro, ou OUTRO (lib/taxasEntrega) quando fora da tabela
   taxaEntrega: number
   formaPagamento: FormaPagamento | ''
   pago: boolean
@@ -57,6 +59,8 @@ export const META_INICIAL: PedidoMeta = {
   clienteNome: '',
   clienteTelefone: '',
   endereco: '',
+  cidade: '',
+  bairro: '',
   taxaEntrega: 0,
   formaPagamento: '',
   pago: false,
@@ -94,7 +98,10 @@ export interface PedidoKds {
 }
 
 // ---------- Utilidades ----------
-export const brl = (valor: number) =>
-  valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+/** Formata em reais. Tolera null/undefined/NaN (ex.: pedido ainda sem total) e mostra R$ 0,00. */
+export const brl = (valor: number | null | undefined) => {
+  const n = Number(valor)
+  return (Number.isFinite(n) ? n : 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
 
 export const round2 = (n: number) => Math.round(n * 100) / 100

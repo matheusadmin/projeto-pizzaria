@@ -76,11 +76,11 @@ export default function InsumoFormModal({ insumo, onClose, onSaved }: Props) {
         </div>
 
         {insumo && (
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-400">
             Para alterar a quantidade em estoque, use “Movimentar” na lista. Assim a mudança fica registrada.
           </p>
         )}
-        {erro && <p role="alert" className="text-sm font-medium text-[#B42318]">{erro}</p>}
+        {erro && <p role="alert" className="text-sm font-medium text-red-400">{erro}</p>}
 
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" className={BTN_GHOST} onClick={onClose}>Cancelar</button>

@@ -94,16 +94,16 @@ export default function EntregadorScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-[#10151C] text-slate-100">
-      <header className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-[#14181F] px-5 py-3">
+    <div className="min-h-screen bg-fundo text-slate-100">
+      <header className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-superficie px-5 py-3">
         <div className="flex items-baseline gap-4">
-          <h1 className={`${DISPLAY} text-3xl font-bold text-orange-500`}>🛵 Expedição & Entregadores</h1>
+          <h1 className={`${DISPLAY} text-3xl font-bold text-marca`}>🛵 Expedição & Entregadores</h1>
           <p className="text-sm text-slate-300">Rotas de entrega em andamento</p>
         </div>
 
         <div className="flex items-center gap-3 text-sm">
           <span className="flex items-center gap-2" role="status">
-            <span className={`h-2.5 w-2.5 rounded-full ${conectado ? 'bg-green-500' : 'bg-red-500'}`} />
+            <span className={`h-2.5 w-2.5 rounded-full ${conectado ? 'bg-emerald-500' : 'bg-red-500'}`} />
             {conectado ? 'Ao vivo' : 'Conectando…'}
           </span>
           <button type="button" onClick={alternarSom} aria-pressed={somAtivo}
@@ -129,7 +129,7 @@ export default function EntregadorScreen() {
             {pedidos.map((p) => {
               const pronto = p.status === 'pronto'
               return (
-                <article key={p.id} className={`flex flex-col justify-between rounded-lg bg-[#1A212B] border-2 p-5 shadow-lg ${pronto ? 'border-yellow-500 animate-pulse' : 'border-blue-500/50'}`}>
+                <article key={p.id} className={`flex flex-col justify-between rounded-lg bg-superficie-alta border-2 p-5 shadow-lg ${pronto ? 'border-yellow-500 animate-pulse' : 'border-blue-500/50'}`}>
                   <div>
                     <div className="flex justify-between items-start mb-3">
                       <div>
@@ -138,7 +138,7 @@ export default function EntregadorScreen() {
                           {pronto ? '🔔 Pronto na Cozinha' : '🚀 Em Rota de Entrega'}
                         </span>
                       </div>
-                      <span className="text-sm font-semibold text-orange-400">{brl(p.taxa_entrega)} taxa</span>
+                      <span className="text-sm font-semibold text-marca">{brl(p.taxa_entrega)} taxa</span>
                     </div>
 
                     <div className="space-y-1 mb-4 text-sm">
@@ -162,7 +162,7 @@ export default function EntregadorScreen() {
                     <button
                       type="button"
                       onClick={() => alterarStatus(p.id, 'entregue')}
-                      className="flex-1 rounded-md bg-green-600 py-3 text-base font-semibold text-white hover:bg-green-500 transition-colors"
+                      className="flex-1 rounded-md bg-emerald-600 py-3 text-base font-semibold text-white hover:bg-emerald-500 transition-colors"
                     >
                       ✅ Concluir Retorno ao Caixa
                     </button>

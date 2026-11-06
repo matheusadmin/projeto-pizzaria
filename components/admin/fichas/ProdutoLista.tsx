@@ -26,17 +26,17 @@ export default function ProdutoLista({ produtos, semFicha, selecionadoId, onSele
   }, [produtos, busca])
 
   return (
-    <div className="bg-white">
-      <div className="border-b border-slate-200 p-3">
+    <div className="bg-superficie-alta">
+      <div className="border-b border-white/10 p-3">
         <input className={INPUT} placeholder="Buscar produto" aria-label="Buscar produto"
           value={busca} onChange={(e) => setBusca(e.target.value)} />
       </div>
 
       <div className="max-h-[70vh] overflow-y-auto">
-        {grupos.length === 0 && <p className="p-4 text-sm text-slate-600">Nenhum produto encontrado.</p>}
+        {grupos.length === 0 && <p className="p-4 text-sm text-slate-400">Nenhum produto encontrado.</p>}
         {grupos.map(([categoria, itens]) => (
           <section key={categoria}>
-            <h2 className="bg-slate-100 px-3 py-1.5 text-sm font-semibold text-slate-700">{categoria}</h2>
+            <h2 className="bg-white/5 px-3 py-1.5 text-sm font-semibold text-slate-300">{categoria}</h2>
             <ul>
               {itens.map((p) => {
                 const ativo = p.id === selecionadoId
@@ -45,9 +45,9 @@ export default function ProdutoLista({ produtos, semFicha, selecionadoId, onSele
                     <button type="button" aria-current={ativo ? 'true' : undefined} onClick={() => onSelect(p.id)}
                       className={
                         'flex w-full items-center justify-between gap-2 border-l-4 px-3 py-2.5 text-left text-sm ' +
-                        (ativo ? 'border-[#14181F] bg-slate-100 font-semibold' : 'border-transparent hover:bg-slate-50')
+                        (ativo ? 'border-marca bg-white/5 font-semibold' : 'border-transparent hover:bg-white/5')
                       }>
-                      <span className={p.disponivel ? '' : 'text-slate-500 line-through'}>{p.nome}</span>
+                      <span className={p.disponivel ? '' : 'text-slate-400 line-through'}>{p.nome}</span>
                       {p.produto_tamanhos.length === 0
                         ? <Tag tone="slate">Sem preço</Tag>
                         : semFicha.has(p.id) && <Tag tone="amber">Sem ficha</Tag>}
