@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { msgErro } from '@/lib/pedidos'
 import type { Dre } from '@/lib/admin'
@@ -10,12 +10,8 @@ import { PageHeader } from '../ui'
 import PeriodoFiltro from './PeriodoFiltro'
 import DrePanel from './DrePanel'
 import MargemProdutos from './MargemProdutos'
-import ContasPanel from './ContasPanel'
-
-type Aba = 'dre' | 'contas'
 
 export default function FinanceiroScreen() {
-  const [aba, setAba] = useState<Aba>('dre')
   const [periodo, setPeriodo] = useState<{ preset: Preset; de: string; ate: string }>(() => ({
     preset: 'mes',
     ...intervaloPreset('mes'),
@@ -43,45 +39,25 @@ export default function FinanceiroScreen() {
     })
   }, [periodo])
 
-  const recarregarContas = useCallback(async () => {
-    try {
-      setContas(await listarContas(periodo.de, periodo.ate))
-      setErroContas(null)
-    } catch (e) {
-      setErroContas(msgErro(e))
-    }
+  // As contas entram aqui só para compor o resultado operacional; a gestão delas fica na tela Contas.
+  useEffect(() => {
+    let vivo = true
+    listarContas(periodo.de, periodo.ate)
+      .then((c) => { if (vivo) { setContas(c); setErroContas(null) } })
+      .catch((e) => { if (vivo) setErroContas(msgErro(e)) })
+    return () => { vivo = false }
   }, [periodo])
-
-  useEffect(() => { recarregarContas() }, [recarregarContas])
 
   // Se a tabela de contas ainda não existe (migração não rodada), o DRE segue só com as vendas.
   const resumo = useMemo(() => (erroContas ? null : resumirContas(contas)), [contas, erroContas])
 
   return (
     <>
-      <PageHeader titulo="Financeiro" descricao="Resultado das vendas, despesas e margem dos produtos." />
+      <PageHeader titulo="DRE" descricao="Demonstrativo de resultado: vendas, CMV, despesas e margem dos produtos." />
       <div className="space-y-5">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <PeriodoFiltro {...periodo} onChange={setPeriodo} />
-          <div className="flex gap-1 rounded-md bg-superficie-alta p-1" role="tablist" aria-label="Seção financeira">
-            {([['dre', 'DRE e margens'], ['contas', 'Contas a pagar/receber']] as const).map(([v, rotulo]) => (
-              <button key={v} type="button" role="tab" aria-selected={aba === v} onClick={() => setAba(v)}
-                className={'rounded px-3 py-2 text-sm font-semibold ' +
-                  (aba === v ? 'bg-marca text-fundo' : 'text-slate-300 hover:bg-white/5')}>
-                {rotulo}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {aba === 'dre' ? (
-          <>
-            <DrePanel dre={dre} loading={loading} erro={erro} contas={resumo} />
-            <MargemProdutos />
-          </>
-        ) : (
-          <ContasPanel contas={contas} erro={erroContas} onMudou={recarregarContas} />
-        )}
+        <PeriodoFiltro {...periodo} onChange={setPeriodo} />
+        <DrePanel dre={dre} loading={loading} erro={erro} contas={resumo} />
+        <MargemProdutos />
       </div>
     </>
   )

@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
 import { brl4, fmtQtd, nivelEstoque, norm, type Insumo } from '@/lib/admin'
 import { INPUT } from '@/lib/ui'
@@ -46,13 +45,8 @@ export default function InsumosScreen() {
     <>
       <PageHeader
         titulo="Insumos"
-        descricao="Estoque e custo de cada matéria-prima. O custo unitário alimenta o CMV das fichas técnicas."
-        acao={
-          <div className="flex flex-wrap gap-2">
-            <Link href="/admin/fichas" className={BTN_GHOST}>Fichas técnicas</Link>
-            <button type="button" className={BTN_RED} onClick={() => setForm({ insumo: null })}>Novo insumo</button>
-          </div>
-        }
+        descricao="Estoque e custo de cada matéria-prima. O custo unitário é usado no cálculo do CMV."
+        acao={<button type="button" className={BTN_RED} onClick={() => setForm({ insumo: null })}>Novo insumo</button>}
       />
 
       {alertas.length > 0 && (

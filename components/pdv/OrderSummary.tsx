@@ -63,7 +63,7 @@ export default function OrderSummary(p: Props) {
 
   return (
     <aside className="flex h-full min-h-0 w-full flex-col border-l border-white/10 bg-superficie lg:w-[26rem]">
-      <div className="space-y-3 border-b border-white/10 p-4">
+      <div className="shrink-0 space-y-3 border-b border-white/10 p-4">
         <div className="flex items-center justify-between">
           <h2 className={`${DISPLAY} text-3xl font-bold text-white`}>Pedido</h2>
           {itens.length > 0 && (
@@ -86,6 +86,11 @@ export default function OrderSummary(p: Props) {
           ))}
         </div>
 
+      </div>
+
+      {/* Área rolável: dados do atendimento + itens. Sem isso, o formulário do delivery ocupava a coluna toda e a lista de itens sumia. */}
+      <div className="min-h-0 flex-1 overflow-y-auto px-4">
+        <div className="space-y-3 border-b border-white/10 py-3 empty:hidden">
         {meta.tipo === 'mesa' && (
           <Campo label="Número da mesa">
             <input className={INPUT_DARK} inputMode="numeric" value={meta.mesa}
@@ -151,10 +156,7 @@ export default function OrderSummary(p: Props) {
         {(delivery || retirada) && (
           <ClienteSugerido telefone={meta.clienteTelefone} entrega={delivery} onUsar={p.onMetaChange} />
         )}
-      </div>
-
-      {/* Itens */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-4">
+        </div>
         {itens.length === 0 ? (
           <p className="py-10 text-center text-slate-400">Toque em um produto para adicionar ao pedido.</p>
         ) : (
@@ -190,7 +192,7 @@ export default function OrderSummary(p: Props) {
       </div>
 
       {/* Totais e envio */}
-      <div className="space-y-3 border-t border-white/10 bg-superficie-alta p-4">
+      <div className="shrink-0 space-y-3 border-t border-white/10 bg-superficie-alta p-4">
         <div className="grid grid-cols-2 gap-2">
           <Campo label="Pagamento">
             <select className={INPUT_DARK} value={meta.formaPagamento}

@@ -4,8 +4,6 @@ export interface Rota {
   href: string
   rotulo: string
   roles: Role[]
-  /** Prefixos de rota que também deixam este item "ativo" na barra (ex.: Estoque cobre Insumos e Fichas). */
-  ativoEm?: string[]
 }
 
 const TODOS: Role[] = ['admin', 'dev', 'caixa', 'cozinha', 'entregador']
@@ -30,13 +28,10 @@ export const ROTAS = {
   cardapio: rota('/admin/cardapio', 'Cardápio', ['admin', 'dev']),
   dashboard: rota('/admin/dashboard', 'Dashboard', ['admin', 'dev']),
   financeiro: rota('/admin/financeiro', 'DRE', ['admin', 'dev']),
+  contas: rota('/admin/contas', 'Contas', ['admin', 'dev']),
 }
 
-/** Áreas administrativas: Financeiro e Estoque & Produção são separados. */
-export const AREA_FINANCEIRO = ['/admin/dashboard', '/admin/financeiro']
-export const AREA_ESTOQUE = ['/admin/insumos', '/admin/fichas', '/admin/compras', '/admin/cardapio']
-
-/** Ordem dos links na barra de navegação. */
+/** Ordem dos links na barra de navegação. Cada tela tem o seu próprio item (sem agrupamentos). */
 export const MENU: Rota[] = [
   ROTAS.hub,
   ROTAS.pdv,
@@ -45,6 +40,14 @@ export const MENU: Rota[] = [
   ROTAS.garcom,
   ROTAS.caixa,
   ROTAS.entregador,
-  { ...ROTAS.insumos, rotulo: 'Estoque', ativoEm: AREA_ESTOQUE },
-  { ...ROTAS.dashboard, rotulo: 'Financeiro', ativoEm: AREA_FINANCEIRO },
+  ROTAS.insumos,
+  ROTAS.fichas,
+  ROTAS.compras,
+  ROTAS.cardapio,
+  ROTAS.dashboard,
+  ROTAS.financeiro,
+  ROTAS.contas,
 ]
+
+/** Primeira rota administrativa: o menu desenha um separador antes dela. */
+export const PRIMEIRA_ROTA_ADMIN = ROTAS.insumos.href

@@ -51,7 +51,16 @@ function Kpi({ titulo, valor, variacaoPct, sub, destaque }: {
   )
 }
 
-function Alerta({ href, total, rotulo, ok }: { href: string; total: number; rotulo: string; ok: string }) {
+function Alerta({ href, total, rotulo, ok }: { href: string; total: number | null; rotulo: string; ok: string }) {
+  // null = ainda carregando ou a consulta falhou: nunca mostrar "tudo certo" sem ter conferido.
+  if (total == null) {
+    return (
+      <Link href={href} className="flex items-center justify-between gap-3 border-l-4 border-slate-600 bg-superficie-alta p-4 hover:bg-white/5">
+        <span className="text-sm text-slate-400">Conferindo…</span>
+        <span className={`${DISPLAY} text-3xl font-bold text-slate-500`}>—</span>
+      </Link>
+    )
+  }
   return (
     <Link href={href} className={
       'flex items-center justify-between gap-3 border-l-4 bg-superficie-alta p-4 hover:bg-white/5 ' +
@@ -73,7 +82,7 @@ export default function DashboardScreen() {
   const [pedidos, setPedidos] = useState<PedidoVenda[]>([])
   const [loading, setLoading] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
-  const [alertas, setAlertas] = useState<{ estoque: number; semFicha: number } | null>(null)
+  const [alertas, setAlertas] = useState<{ estoque: number | null; semFicha: number | null } | null>(null)
   const requisicao = useRef(0) // ignora respostas antigas se o período mudar rápido
 
   useEffect(() => {
@@ -107,12 +116,13 @@ export default function DashboardScreen() {
       supabase.from('insumos').select('quantidade_atual, estoque_minimo'),
       supabase.from('vw_cmv_produto_tamanho').select('produto_id, cmv'),
     ]).then(([ins, cmv]) => {
-      if (!vivo || ins.error || cmv.error) return
-      const semFicha = new Set((cmv.data as { produto_id: string; cmv: number }[]).filter((r) => r.cmv <= 0).map((r) => r.produto_id))
-      setAlertas({
-        estoque: (ins.data as { quantidade_atual: number; estoque_minimo: number }[]).filter((i) => nivelEstoque(i) === 'abaixo').length,
-        semFicha: semFicha.size,
-      })
+      if (!vivo) return
+      // Cada alerta é independente: se uma consulta falhar, só ela fica sem resposta (—).
+      const estoque = ins.error || !ins.data ? null
+        : (ins.data as { quantidade_atual: number; estoque_minimo: number }[]).filter((i) => nivelEstoque(i) === 'abaixo').length
+      const semFicha = cmv.error || !cmv.data ? null
+        : new Set((cmv.data as { produto_id: string; cmv: number }[]).filter((r) => r.cmv <= 0).map((r) => r.produto_id)).size
+      setAlertas({ estoque, semFicha })
     })
     return () => { vivo = false }
   }, [])
@@ -153,9 +163,9 @@ export default function DashboardScreen() {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Alerta href="/admin/insumos" total={alertas?.estoque ?? 0}
+            <Alerta href="/admin/insumos" total={alertas?.estoque ?? null}
               rotulo="insumos abaixo do estoque mínimo" ok="Estoque dentro do mínimo" />
-            <Alerta href="/admin/fichas" total={alertas?.semFicha ?? 0}
+            <Alerta href="/admin/fichas" total={alertas?.semFicha ?? null}
               rotulo="produtos sem ficha técnica (CMV zerado)" ok="Todos os produtos têm ficha técnica" />
           </div>
 

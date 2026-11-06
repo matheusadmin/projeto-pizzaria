@@ -44,7 +44,7 @@ const BADGES_STATUS: Record<string, { rotulo: string; classe: string }> = {
   em_preparo: { rotulo: '🔥 Em Preparo na Cozinha', classe: 'bg-yellow-500 text-black font-bold animate-pulse' },
   pronto: { rotulo: '🔔 Pronto / Expedição', classe: 'bg-blue-500 text-white font-bold' },
   saiu_para_entrega: { rotulo: '🛵 Saiu para Entrega', classe: 'bg-purple-600 text-white font-bold' },
-  entregue: { rotulo: '✅ Entregue / Aguardando Baixa', classe: 'bg-emerald-600 text-white font-bold' },
+  entregue: { rotulo: '✅ Entregue', classe: 'bg-emerald-600 text-white font-bold' },
   cancelado: { rotulo: '❌ Cancelado', classe: 'bg-red-600 text-white font-bold' },
 }
 
@@ -325,7 +325,8 @@ export default function PainelPedidosScreen() {
                 {pedidosFiltrados.map((p) => {
                   const statusInfo = BADGES_STATUS[p.status] || { rotulo: p.status, classe: 'bg-slate-700 text-white' }
                   const hora = new Date(p.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-                  const motoboyRetornou = p.status === 'entregue' && !p.pago
+                  // Só delivery tem motoboy: mesa/balcão/retirada entregues e não pagos mostram apenas "Entregue".
+                  const motoboyRetornou = p.tipo === 'delivery' && p.status === 'entregue' && !p.pago
 
                   return (
                     <tr key={p.id} className={`hover:bg-white/5 transition-colors ${motoboyRetornou ? 'bg-emerald-950/20' : ''}`}>

@@ -1,10 +1,11 @@
 'use client'
 
+import { Fragment } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useProfile } from '@/hooks/useProfile'
 import SignOutButton from '@/components/SignOutButton'
-import { MENU } from '@/lib/rotas'
+import { MENU, PRIMEIRA_ROTA_ADMIN } from '@/lib/rotas'
 
 function Barra({ pathname }) {
   const { perfil } = useProfile()
@@ -21,20 +22,23 @@ function Barra({ pathname }) {
 
         <nav className="flex flex-wrap items-center gap-1 text-xs font-medium sm:text-sm">
           {links.map((r) => {
-            const ativo = r.ativoEm
-              ? r.ativoEm.some((p) => pathname.startsWith(p))
-              : pathname === r.href
+            const ativo = pathname === r.href || pathname.startsWith(r.href + '/')
             return (
-              <Link
-                key={r.href}
-                href={r.href}
-                className={
-                  'rounded-md px-2.5 py-1.5 transition-colors ' +
-                  (ativo ? 'bg-marca text-fundo' : 'text-slate-300 hover:bg-white/10 hover:text-white')
-                }
-              >
-                {r.rotulo}
-              </Link>
+              <Fragment key={r.href}>
+                {r.href === PRIMEIRA_ROTA_ADMIN && (
+                  <span aria-hidden="true" className="mx-1 hidden h-5 w-px bg-white/20 sm:inline-block" />
+                )}
+                <Link
+                  href={r.href}
+                  aria-current={ativo ? 'page' : undefined}
+                  className={
+                    'rounded-md px-2.5 py-1.5 transition-colors ' +
+                    (ativo ? 'bg-marca text-fundo' : 'text-slate-300 hover:bg-white/10 hover:text-white')
+                  }
+                >
+                  {r.rotulo}
+                </Link>
+              </Fragment>
             )
           })}
         </nav>

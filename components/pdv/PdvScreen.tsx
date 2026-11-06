@@ -58,7 +58,7 @@ export default function PdvScreen() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-fundo text-slate-100">
+    <div className="flex h-full min-h-0 flex-col bg-fundo text-slate-100">
       <header className="flex items-center justify-between border-b border-white/10 bg-superficie px-4 py-3 text-white">
         <div className="flex items-center gap-4">
           <h1 className={`${DISPLAY} text-2xl font-bold text-marca`}>Caixa / PDV</h1>

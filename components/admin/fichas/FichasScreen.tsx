@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
 import type { Insumo, ProdutoAdmin, TamanhoAdmin } from '@/lib/admin'
 import { PageHeader } from '../ui'
@@ -72,7 +71,6 @@ export default function FichasScreen() {
       <PageHeader
         titulo="Fichas técnicas"
         descricao="Defina quanto de cada insumo vai em cada produto e tamanho. É a ficha que calcula o CMV e baixa o estoque a cada venda."
-        acao={<Link href="/admin/cardapio" className="rounded-md border border-white/20 px-3 py-1.5 text-sm font-medium text-slate-200 hover:bg-white/5">＋ Cadastrar / editar produtos</Link>}
       />
 
       {erro && <p role="alert" className="mb-3 font-medium text-red-400">Não foi possível carregar: {erro}</p>}
@@ -89,7 +87,7 @@ export default function FichasScreen() {
                 <p>Escolha um produto na lista para montar ou revisar a ficha técnica.</p>
                 {insumos.length === 0 && (
                   <p className="mt-2">
-                    Ainda não há insumos. <Link href="/admin/insumos" className="font-semibold underline">Cadastre os insumos</Link> primeiro.
+                    Ainda não há insumos cadastrados. Cadastre-os na tela Insumos (menu acima) primeiro.
                   </p>
                 )}
               </div>

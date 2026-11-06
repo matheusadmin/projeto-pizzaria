@@ -79,10 +79,17 @@ function Dashboard() {
       cor: 'from-purple-600/20 to-purple-950/40 border-purple-500/30 text-purple-400',
     },
     {
-      titulo: 'Insumos & Estoque',
+      titulo: 'Insumos',
       descricao: 'Matérias-primas, entradas de compra, contagem e alertas de estoque mínimo.',
       href: '/admin/insumos',
       icone: '📦',
+      cor: 'from-cyan-600/20 to-cyan-950/40 border-cyan-500/30 text-cyan-400',
+    },
+    {
+      titulo: 'Fichas Técnicas',
+      descricao: 'Quanto de cada insumo vai em cada produto e tamanho; calcula o CMV e baixa o estoque.',
+      href: '/admin/fichas',
+      icone: '📐',
       cor: 'from-cyan-600/20 to-cyan-950/40 border-cyan-500/30 text-cyan-400',
     },
     {
@@ -113,10 +120,17 @@ function Dashboard() {
       cor: estiloGestao,
     },
     {
-      titulo: 'DRE e Contas',
-      descricao: 'Resultado, CMV, margem por produto e contas a pagar/receber (despesas fixas e variáveis).',
+      titulo: 'DRE',
+      descricao: 'Resultado do período, CMV e margem por produto.',
       href: '/admin/financeiro',
       icone: '🧾',
+      cor: estiloGestao,
+    },
+    {
+      titulo: 'Contas a pagar/receber',
+      descricao: 'Despesas fixas e variáveis e outras receitas, por vencimento.',
+      href: '/admin/contas',
+      icone: '💳',
       cor: estiloGestao,
     },
   ]
